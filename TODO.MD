@@ -10,14 +10,14 @@
 
 ## **Phase 2: The Dream Logic (OpenRouter SDK)**
 
-* \[ \] **Client:** Set up the OpenRouter client in lib/openrouter.ts:  
+* \[x\] **Client:** Set up the OpenRouter client in lib/openrouter.ts:  
   const client \= new OpenRouter({ apiKey: ... });  
-* \[ \] **API:** Build /api/analyze-scene.  
-* \[ \] **Prompt Engineering:** *Critical.*  
+* \[x\] **API:** Build /api/analyze-scene.  
+* \[x\] **Prompt Engineering:** *Critical.*  
   \* *Persona:* "You are a Dream Guide."  
   \* *Instruction:* "Analyze this image. Write a hypnotic, second-person script. Identify 3 distinct sound sources and assign them strict 3D coordinates."  
   \* *Format:* Output strict JSON with narrative and sfx\_cues.  
-* \[ \] **Implementation:** Use client.chat.send() with the model google/gemini-3-flash.
+* \[x\] **Implementation:** Use client.chat.send() with the model google/gemini-3-flash.
 
 ## **Phase 3: The Audio Layer (ElevenLabs)**
 

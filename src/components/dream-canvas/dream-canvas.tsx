@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 import { DreamControls } from "@/components/controls/dream-controls";
+import { useGemini } from "@/hooks/useGemini";
 
 type DreamCanvasProps = {
   imageSrc?: string;
@@ -14,6 +15,12 @@ type DreamCanvasProps = {
 export function DreamCanvas({ imageSrc = "/dream-placeholder.svg" }: DreamCanvasProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(
+    "Upload an image to unlock Dream analysis."
+  );
+  const [localError, setLocalError] = useState<string | null>(null);
+  const { analysis, isAnalyzing, error, analyzeScene, clearAnalysis } = useGemini();
 
   useEffect(() => {
     return () => {
@@ -27,25 +34,71 @@ export function DreamCanvas({ imageSrc = "/dream-placeholder.svg" }: DreamCanvas
     fileInputRef.current?.click();
   };
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Unable to read image data."));
+      };
+      reader.onerror = () => reject(new Error("Unable to read image data."));
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) {
       return;
     }
 
-    setUploadedImageUrl((previousUrl) => {
-      if (previousUrl) {
-        URL.revokeObjectURL(previousUrl);
-      }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setUploadedImageDataUrl(dataUrl);
+      setUploadedImageUrl((previousUrl) => {
+        if (previousUrl) {
+          URL.revokeObjectURL(previousUrl);
+        }
 
-      return URL.createObjectURL(file);
-    });
+        return URL.createObjectURL(file);
+      });
+      clearAnalysis();
+      setLocalError(null);
+      setStatusMessage("Image ready. Click Dream.");
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error ? uploadError.message : "Image upload failed.";
+      setLocalError(message);
+      setStatusMessage(null);
+    }
 
-    event.currentTarget.value = "";
+    input.value = "";
+  };
+
+  const handleDreamClick = async () => {
+    if (!uploadedImageDataUrl) {
+      setLocalError("Upload an image before you click Dream.");
+      setStatusMessage("Lucid needs an uploaded image for scene analysis.");
+      return;
+    }
+
+    setLocalError(null);
+    setStatusMessage("Dream guide is analyzing your scene...");
+
+    try {
+      await analyzeScene({ imageDataUrl: uploadedImageDataUrl });
+      setStatusMessage("Dream scene generated.");
+    } catch {
+      setStatusMessage(null);
+    }
   };
 
   const activeImageSrc = uploadedImageUrl ?? imageSrc;
   const isBlobImage = activeImageSrc.startsWith("blob:");
+  const canDream = uploadedImageDataUrl !== null;
 
   return (
     <section className="relative h-full w-full overflow-hidden">
@@ -77,7 +130,15 @@ export function DreamCanvas({ imageSrc = "/dream-placeholder.svg" }: DreamCanvas
         transition={{ duration: 1.1, ease: "easeOut" }}
         className="relative z-10 flex h-full w-full items-end justify-center p-6 sm:p-10"
       >
-        <DreamControls onUploadClick={handleUploadClick} />
+        <DreamControls
+          onUploadClick={handleUploadClick}
+          onDreamClick={handleDreamClick}
+          isDreaming={isAnalyzing}
+          canDream={canDream}
+          statusMessage={statusMessage}
+          dreamError={localError ?? error}
+          narrative={analysis?.narrative ?? null}
+        />
       </motion.div>
     </section>
   );

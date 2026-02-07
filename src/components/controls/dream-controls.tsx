@@ -7,17 +7,38 @@ import { useAudioStore } from "@/store/use-audio-store";
 
 type DreamControlsProps = {
   onUploadClick: () => void;
+  onDreamClick: () => void;
+  isDreaming: boolean;
+  canDream: boolean;
+  statusMessage: string | null;
+  dreamError: string | null;
+  narrative: string | null;
 };
 
-export function DreamControls({ onUploadClick }: DreamControlsProps) {
+export function DreamControls({
+  onUploadClick,
+  onDreamClick,
+  isDreaming,
+  canDream,
+  statusMessage,
+  dreamError,
+  narrative
+}: DreamControlsProps) {
   const isPlaying = useAudioStore((state) => state.isPlaying);
   const setIsPlaying = useAudioStore((state) => state.setIsPlaying);
+
+  const dreamButtonClassName = [
+    "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
+    canDream
+      ? "border-white/15 bg-white/5 hover:bg-white/15"
+      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55"
+  ].join(" ");
 
   return (
     <motion.div
       animate={{ y: [0, -4, 0] }}
       transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      className="glass-panel w-full max-w-xl px-5 py-5 text-white sm:px-7 sm:py-6"
+      className="glass-panel w-full max-w-3xl px-5 py-5 text-white sm:px-7 sm:py-6"
     >
       <p className="text-xs uppercase tracking-[0.35em] text-indigo-100/85">Lucid</p>
       <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">Drift Into The Scene</h1>
@@ -36,10 +57,12 @@ export function DreamControls({ onUploadClick }: DreamControlsProps) {
         </button>
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium transition hover:bg-white/15"
+          onClick={onDreamClick}
+          disabled={!canDream || isDreaming}
+          className={dreamButtonClassName}
         >
           <MoonStar className="size-4" aria-hidden="true" />
-          Dream
+          {isDreaming ? "Dreaming..." : "Dream"}
         </button>
         <button
           type="button"
@@ -50,6 +73,34 @@ export function DreamControls({ onUploadClick }: DreamControlsProps) {
           {isPlaying ? "Pause" : "Play"}
         </button>
       </div>
+
+      {statusMessage ? <p className="mt-4 text-sm text-indigo-100/80">{statusMessage}</p> : null}
+      {dreamError ? <p className="mt-2 text-sm text-rose-200">{dreamError}</p> : null}
+
+      <motion.section
+        key={narrative ?? "script-placeholder"}
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, ease: "easeOut" }}
+        className="relative mt-5 overflow-hidden rounded-3xl border border-white/15 bg-black/20 p-4 sm:p-5"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-[#0b0e22] to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-[#0b0e22] to-transparent" />
+
+        <p className="text-[11px] uppercase tracking-[0.3em] text-indigo-100/80">Dream Script</p>
+        <motion.p
+          animate={narrative ? { opacity: [0.5, 1, 0.5], y: [5, 0, -5] } : { opacity: 0.9 }}
+          transition={
+            narrative
+              ? { duration: 12, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
+              : { duration: 0.2 }
+          }
+          className="mt-3 max-h-52 overflow-y-auto pr-1 text-sm leading-7 text-indigo-50/95 sm:max-h-60 sm:text-base"
+        >
+          {narrative ??
+            "Your dream script will appear here after you upload an image and press Dream."}
+        </motion.p>
+      </motion.section>
     </motion.div>
   );
 }
