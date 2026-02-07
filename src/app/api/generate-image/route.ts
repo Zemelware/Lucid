@@ -4,7 +4,8 @@ import { getOpenRouterClient } from "@/lib/openrouter";
 
 export const runtime = "nodejs";
 
-const MODEL_NAME = "google/gemini-2.5-flash-image";
+const MODEL_NAME_DEFAULT = "google/gemini-2.5-flash-image";
+const MODEL_NAME_HIGH_RES = "google/gemini-3-pro-image-preview";
 
 const SYSTEM_PROMPT = `
 You are the image director for Lucid, an ASMR dreamscape generator.
@@ -17,9 +18,8 @@ const SCENE_SEED_EXAMPLES = [
   "a liminal hotel corridor at night with soft golden wall lights and floating dust motes",
   "an ethereal bedroom suspended above still moonlit water with gauzy curtains drifting",
   "a mystical forest path with glowing fireflies, distant fog, and pale blue bioluminescence",
-  "a quiet abandoned library with skylight moonbeams and drifting pages in slow motion",
   "a misty Japanese garden with lantern reflections in shallow water and soft twilight haze",
-  "a glass observatory above clouds with constellations mirrored on polished black stone"
+  "a glass observatory above clouds with constellations mirrored on polished black stone",
 ] as const;
 
 const DATA_IMAGE_URL_PATTERN = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
@@ -28,6 +28,7 @@ const HTTP_URL_PATTERN = /https?:\/\/[^\s"'`<>)\]}]+/g;
 type GenerateImageRequestBody = {
   prompt?: unknown;
   random?: unknown;
+  isHighRes?: unknown;
 };
 
 type GenerateImageResponseBody = {
@@ -74,12 +75,10 @@ function normalizeCandidate(value: string): string {
 function collectUrlsFromText(text: string): string[] {
   const candidates = [
     ...(text.match(DATA_IMAGE_URL_PATTERN) ?? []),
-    ...(text.match(HTTP_URL_PATTERN) ?? [])
+    ...(text.match(HTTP_URL_PATTERN) ?? []),
   ];
 
-  return candidates
-    .map(normalizeCandidate)
-    .filter((candidate) => candidate.length > 0);
+  return candidates.map(normalizeCandidate).filter((candidate) => candidate.length > 0);
 }
 
 function isDataImageUrl(value: string): boolean {
@@ -145,7 +144,7 @@ function readImageFromMessage(message: unknown): {
   if (dataImageUrl) {
     return {
       imageUrl: null,
-      imageDataUrl: dataImageUrl
+      imageDataUrl: dataImageUrl,
     };
   }
 
@@ -153,7 +152,7 @@ function readImageFromMessage(message: unknown): {
   if (imageUrl) {
     return {
       imageUrl,
-      imageDataUrl: null
+      imageDataUrl: null,
     };
   }
 
@@ -174,12 +173,13 @@ export async function POST(request: Request) {
 
   try {
     const random = readOptionalBoolean(body.random, "random");
+    const isHighRes = readOptionalBoolean(body.isHighRes, "isHighRes");
     const prompt = readOptionalPrompt(body.prompt);
 
     if (!random && !prompt) {
       return NextResponse.json(
         { error: "prompt is required unless random is true." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -189,13 +189,18 @@ export async function POST(request: Request) {
     const completion = await client.chat.send({
       chatGenerationParams: {
         stream: false,
-        model: MODEL_NAME,
+        model: isHighRes ? MODEL_NAME_HIGH_RES : MODEL_NAME_DEFAULT,
         temperature: 1,
         modalities: ["image", "text"],
+        image_config: isHighRes
+          ? {
+              image_size: "2K",
+            }
+          : undefined,
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT
+            content: SYSTEM_PROMPT,
           },
           {
             role: "user",
@@ -210,22 +215,21 @@ Tone: hypnotic, serene, liminal, dreamlike, cinematic.
 Perspective: first-person viewpoint entering the space.
 Lighting: soft and atmospheric with gentle depth haze.
 Do not include any text, logos, watermarks, borders, or split layouts.
-`.trim()
-          }
-        ]
-      }
+`.trim(),
+          },
+        ],
+      } as any,
     });
 
     const image = readImageFromMessage(completion.choices[0]?.message);
     const responseBody: GenerateImageResponseBody = {
       imageUrl: image.imageUrl,
-      imageDataUrl: image.imageDataUrl
+      imageDataUrl: image.imageDataUrl,
     };
 
     return NextResponse.json(responseBody);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unexpected image generation failure.";
+    const message = error instanceof Error ? error.message : "Unexpected image generation failure.";
     const status = message.includes("OPENROUTER_API_KEY") ? 500 : 502;
     return NextResponse.json({ error: message }, { status });
   }

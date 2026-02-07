@@ -10,7 +10,8 @@ const MODEL_NAME = "google/gemini-3-flash-preview";
 const SYSTEM_PROMPT = `
 You are a Dream Guide.
 Analyze the provided image and produce a hypnotic second-person narrative.
-Identify exactly 3 distinct environmental sound sources from the scene.
+Identify between 2 and 5 distinct environmental sound sources from the scene.
+Vary the positioning to create depth: some sounds should be close to the listener, and some more distant.
 Each sound source must have strict 3D coordinates:
 - x controls left/right and must be between -10 and 10.
 - z controls front/back and must be between -10 and 10.
@@ -34,7 +35,7 @@ Generate a dream analysis object with this structure:
 
 Requirements:
 - narrative: 110-190 words, second-person, hypnotic, sensory.
-- sfx_cues: exactly 3 items, each distinct.
+- sfx_cues: 2 to 5 items, each distinct.
 - volume: range 0.0 to 1.0.
 `.trim();
 
@@ -45,12 +46,12 @@ const DREAM_ANALYSIS_RESPONSE_SCHEMA = {
   properties: {
     narrative: {
       type: "string",
-      minLength: 60
+      minLength: 60,
     },
     sfx_cues: {
       type: "array",
-      minItems: 3,
-      maxItems: 3,
+      minItems: 2,
+      maxItems: 5,
       items: {
         type: "object",
         additionalProperties: false,
@@ -58,7 +59,7 @@ const DREAM_ANALYSIS_RESPONSE_SCHEMA = {
         properties: {
           prompt: {
             type: "string",
-            minLength: 3
+            minLength: 3,
           },
           position_3d: {
             type: "object",
@@ -67,21 +68,21 @@ const DREAM_ANALYSIS_RESPONSE_SCHEMA = {
             properties: {
               x: { type: "number", minimum: -10, maximum: 10 },
               y: { type: "number", minimum: -10, maximum: 10 },
-              z: { type: "number", minimum: -10, maximum: 10 }
-            }
+              z: { type: "number", minimum: -10, maximum: 10 },
+            },
           },
           loop: {
-            type: "boolean"
+            type: "boolean",
           },
           volume: {
             type: "number",
             minimum: 0,
-            maximum: 1
-          }
-        }
-      }
-    }
-  }
+            maximum: 1,
+          },
+        },
+      },
+    },
+  },
 } as const;
 
 type AnalyzeSceneRequestBody = {
@@ -122,10 +123,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function readImageInput(body: AnalyzeSceneRequestBody): string {
-  if (
-    typeof body.imageDataUrl === "string" &&
-    body.imageDataUrl.startsWith("data:image/")
-  ) {
+  if (typeof body.imageDataUrl === "string" && body.imageDataUrl.startsWith("data:image/")) {
     return body.imageDataUrl;
   }
 
@@ -133,9 +131,7 @@ function readImageInput(body: AnalyzeSceneRequestBody): string {
     return body.imageUrl;
   }
 
-  throw new Error(
-    "Provide either imageDataUrl (data:image/*) or imageUrl (https://...)."
-  );
+  throw new Error("Provide either imageDataUrl (data:image/*) or imageUrl (https://...).");
 }
 
 function extractTextContent(content: unknown): string {
@@ -217,12 +213,9 @@ function parseSfxCue(value: unknown, index: number): SfxCue {
 
   return {
     prompt: readNonEmptyString(value.prompt, `sfx_cues[${index}].prompt`),
-    position_3d: parsePosition3D(
-      value.position_3d,
-      `sfx_cues[${index}].position_3d`
-    ),
+    position_3d: parsePosition3D(value.position_3d, `sfx_cues[${index}].position_3d`),
     loop: readBoolean(value.loop, `sfx_cues[${index}].loop`),
-    volume: clamp(readNumber(value.volume, `sfx_cues[${index}].volume`), 0, 1)
+    volume: clamp(readNumber(value.volume, `sfx_cues[${index}].volume`), 0, 1),
   };
 }
 
@@ -232,15 +225,15 @@ function parseDreamSceneAnalysis(value: unknown): DreamSceneAnalysis {
   }
 
   const cuesValue = value.sfx_cues;
-  if (!Array.isArray(cuesValue) || cuesValue.length !== 3) {
-    throw new Error("sfx_cues must contain exactly 3 items.");
+  if (!Array.isArray(cuesValue) || cuesValue.length < 2 || cuesValue.length > 5) {
+    throw new Error("sfx_cues must contain between 2 and 5 items.");
   }
 
   const sfxCues = cuesValue.map((cue, index) => parseSfxCue(cue, index));
 
   return {
     narrative: readNonEmptyString(value.narrative, "narrative"),
-    sfx_cues: [sfxCues[0], sfxCues[1], sfxCues[2]]
+    sfx_cues: sfxCues,
   };
 }
 
@@ -250,18 +243,12 @@ export async function POST(request: Request) {
   try {
     const requestBody = (await request.json()) as unknown;
     if (!isRecord(requestBody)) {
-      return NextResponse.json(
-        { error: "Request body must be a JSON object." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
     }
 
     body = requestBody as AnalyzeSceneRequestBody;
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   try {
@@ -276,42 +263,39 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT
+            content: SYSTEM_PROMPT,
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: USER_PROMPT
+                text: USER_PROMPT,
               },
               {
                 type: "image_url",
                 imageUrl: {
                   url: imageInput,
-                  detail: "high"
-                }
-              }
-            ]
-          }
+                  detail: "high",
+                },
+              },
+            ],
+          },
         ],
         responseFormat: {
           type: "json_schema",
           jsonSchema: {
             name: "dream_scene_analysis",
             strict: true,
-            schema: DREAM_ANALYSIS_RESPONSE_SCHEMA
-          }
-        }
-      }
+            schema: DREAM_ANALYSIS_RESPONSE_SCHEMA,
+          },
+        },
+      },
     });
 
     const modelContent = extractTextContent(completion.choices[0]?.message?.content);
     if (!modelContent) {
-      return NextResponse.json(
-        { error: "Model returned an empty response." },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: "Model returned an empty response." }, { status: 502 });
     }
 
     const parsed = parseModelJson(modelContent);
@@ -321,8 +305,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(analysis);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unexpected analyze-scene failure.";
+    const message = error instanceof Error ? error.message : "Unexpected analyze-scene failure.";
 
     const status = message.includes("OPENROUTER_API_KEY") ? 500 : 502;
 

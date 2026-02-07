@@ -25,15 +25,15 @@ function getErrorMessage(value: unknown): string {
 async function getAudioBlob(
   endpoint: string,
   payload: Record<string, unknown>,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<Blob> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-    signal
+    signal,
   });
 
   if (!response.ok) {
@@ -153,9 +153,9 @@ export function useDreamAudio() {
         const narratorPromise = getAudioBlob(
           "/api/generate-voice",
           {
-            text: analysis.narrative
+            text: analysis.narrative,
           },
-          controller.signal
+          controller.signal,
         );
 
         const sfxPromises = analysis.sfx_cues.map((cue) =>
@@ -165,16 +165,13 @@ export function useDreamAudio() {
               text: cue.prompt,
               loop: cue.loop,
               durationSeconds: cue.loop ? 12 : 6,
-              promptInfluence: cue.loop ? 0.35 : 0.45
+              promptInfluence: cue.loop ? 0.35 : 0.45,
             },
-            controller.signal
-          )
+            controller.signal,
+          ),
         );
 
-        const [narratorBlob, ...sfxBlobs] = await Promise.all([
-          narratorPromise,
-          ...sfxPromises
-        ]);
+        const [narratorBlob, ...sfxBlobs] = await Promise.all([narratorPromise, ...sfxPromises]);
 
         if (generationRef.current !== currentGeneration || controller.signal.aborted) {
           return null;
@@ -185,7 +182,7 @@ export function useDreamAudio() {
         nextObjectUrls = [narratorBlobUrl, ...sfxBlobUrls];
 
         nextPreloadedElements = await Promise.all(
-          nextObjectUrls.map((blobUrl) => preloadAudioBlob(blobUrl))
+          nextObjectUrls.map((blobUrl) => preloadAudioBlob(blobUrl)),
         );
 
         if (generationRef.current !== currentGeneration || controller.signal.aborted) {
@@ -196,15 +193,15 @@ export function useDreamAudio() {
 
         const sfxAssets = analysis.sfx_cues.map((cue, index) => ({
           blobUrl: sfxBlobUrls[index],
-          cue
+          cue,
         }));
 
         const nextPreparedAudio: DreamAudioAssets = {
           narrator: {
             blobUrl: narratorBlobUrl,
-            text: analysis.narrative
+            text: analysis.narrative,
           },
-          sfx: [sfxAssets[0], sfxAssets[1], sfxAssets[2]]
+          sfx: sfxAssets,
         };
 
         objectUrlsRef.current = nextObjectUrls;
@@ -236,7 +233,7 @@ export function useDreamAudio() {
         }
       }
     },
-    [releaseAudioCache, setPreparedAudioInStore]
+    [releaseAudioCache, setPreparedAudioInStore],
   );
 
   useEffect(() => clearPreparedAudio, [clearPreparedAudio]);
@@ -246,6 +243,6 @@ export function useDreamAudio() {
     isPreparingAudio,
     error,
     prepareAudio,
-    clearPreparedAudio
+    clearPreparedAudio,
   };
 }

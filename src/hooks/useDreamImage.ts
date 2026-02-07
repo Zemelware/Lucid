@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 type GenerateImageRequestBody = {
   prompt?: string;
   random?: boolean;
+  isHighRes?: boolean;
 };
 
 export type GeneratedDreamImage = {
@@ -17,11 +18,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function getErrorMessage(value: unknown): string {
-  if (
-    isRecord(value) &&
-    typeof value.error === "string" &&
-    value.error.trim().length > 0
-  ) {
+  if (isRecord(value) && typeof value.error === "string" && value.error.trim().length > 0) {
     return value.error;
   }
 
@@ -51,7 +48,7 @@ function parseGeneratedDreamImage(value: unknown): GeneratedDreamImage {
 
   return {
     imageUrl,
-    imageDataUrl
+    imageDataUrl,
   };
 }
 
@@ -68,9 +65,9 @@ export function useDreamImage() {
         const response = await fetch("/api/generate-image", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
         });
 
         const responseBody = (await response.json()) as unknown;
@@ -86,7 +83,7 @@ export function useDreamImage() {
         setIsGeneratingImage(false);
       }
     },
-    []
+    [],
   );
 
   const clearError = useCallback(() => {
@@ -97,6 +94,6 @@ export function useDreamImage() {
     generateImage,
     isGeneratingImage,
     error,
-    clearError
+    clearError,
   };
 }

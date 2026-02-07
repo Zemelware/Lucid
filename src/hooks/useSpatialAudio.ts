@@ -13,7 +13,7 @@ type SpatialTrack = {
 
 type SpatialGraph = {
   narrator: SpatialTrack;
-  sfx: [SpatialTrack, SpatialTrack, SpatialTrack];
+  sfx: SpatialTrack[];
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -52,7 +52,7 @@ function createPanner(context: AudioContext, cue: SfxCue): PannerNode {
     rolloffFactor: 1,
     coneInnerAngle: 360,
     coneOuterAngle: 360,
-    coneOuterGain: 1
+    coneOuterGain: 1,
   });
 
   const x = toAudioUnits(cue.position_3d.x);
@@ -75,11 +75,7 @@ function createAudioElement(blobUrl: string, loop: boolean): HTMLAudioElement {
   return element;
 }
 
-function createSfxTrack(
-  context: AudioContext,
-  blobUrl: string,
-  cue: SfxCue
-): SpatialTrack {
+function createSfxTrack(context: AudioContext, blobUrl: string, cue: SfxCue): SpatialTrack {
   const element = createAudioElement(blobUrl, cue.loop);
   const source = context.createMediaElementSource(element);
   const panner = createPanner(context, cue);
@@ -147,8 +143,7 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       return audioContextRef.current;
     }
 
-    const AudioContextCtor =
-      window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
+    const AudioContextCtor = window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
     if (!AudioContextCtor) {
       throw new Error("Web Audio is not supported in this browser.");
     }
@@ -196,16 +191,16 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       narratorGain.connect(context.destination);
 
       const sfxTracks = assets.sfx.map((asset) =>
-        createSfxTrack(context, asset.blobUrl, asset.cue)
-      ) as [SpatialTrack, SpatialTrack, SpatialTrack];
+        createSfxTrack(context, asset.blobUrl, asset.cue),
+      );
 
       graphRef.current = {
         narrator: {
           element: narratorElement,
           source: narratorSource,
-          gain: narratorGain
+          gain: narratorGain,
         },
-        sfx: sfxTracks
+        sfx: sfxTracks,
       };
 
       const syncDuration = () => {
@@ -237,7 +232,7 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
         narratorElement.removeEventListener("ended", handleEnded);
       };
     },
-    [ensureAudioContext, teardownGraph]
+    [ensureAudioContext, teardownGraph],
   );
 
   useEffect(() => {
@@ -284,11 +279,9 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       return;
     }
 
-    [graph.narrator.element, ...graph.sfx.map((track) => track.element)].forEach(
-      (element) => {
-        element.pause();
-      }
-    );
+    [graph.narrator.element, ...graph.sfx.map((track) => track.element)].forEach((element) => {
+      element.pause();
+    });
 
     const context = audioContextRef.current;
     if (context && context.state === "running") {
@@ -303,12 +296,10 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       return;
     }
 
-    [graph.narrator.element, ...graph.sfx.map((track) => track.element)].forEach(
-      (element) => {
-        element.pause();
-        element.currentTime = 0;
-      }
-    );
+    [graph.narrator.element, ...graph.sfx.map((track) => track.element)].forEach((element) => {
+      element.pause();
+      element.currentTime = 0;
+    });
 
     setCurrentTimeSeconds(0);
   }, []);
@@ -355,6 +346,6 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
     },
     pause,
     stop,
-    seek
+    seek,
   };
 }

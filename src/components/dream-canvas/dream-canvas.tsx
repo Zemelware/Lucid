@@ -3,6 +3,7 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { motion } from "framer-motion";
+import { Brain } from "lucide-react";
 import Image from "next/image";
 
 import { DreamControls } from "@/components/controls/dream-controls";
@@ -11,6 +12,7 @@ import { useDreamImage } from "@/hooks/useDreamImage";
 import { useSpatialAudio } from "@/hooks/useSpatialAudio";
 import { useGemini } from "@/hooks/useGemini";
 import { useAudioStore } from "@/store/use-audio-store";
+import { useSettingsStore } from "@/store/use-settings-store";
 
 type DreamCanvasProps = {
   imageSrc?: string;
@@ -49,17 +51,14 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     isGeneratingImage,
     error: imageGenerationError,
     generateImage,
-    clearError: clearImageGenerationError
+    clearError: clearImageGenerationError,
   } = useDreamImage();
-  const {
-    isPreparingAudio,
-    error: audioError,
-    prepareAudio,
-    clearPreparedAudio
-  } = useDreamAudio();
+  const { isPreparingAudio, error: audioError, prepareAudio, clearPreparedAudio } = useDreamAudio();
   const preparedAudio = useAudioStore((state) => state.preparedAudio);
   const isPlaying = useAudioStore((state) => state.isPlaying);
   const setIsPlaying = useAudioStore((state) => state.setIsPlaying);
+  const isHighRes = useSettingsStore((state) => state.isHighRes);
+  const setIsHighRes = useSettingsStore((state) => state.setIsHighRes);
   const {
     play: playSpatialAudio,
     pause: pauseSpatialAudio,
@@ -67,7 +66,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     seek: seekSpatialAudio,
     currentTimeSeconds,
     durationSeconds,
-    error: spatialAudioError
+    error: spatialAudioError,
   } = useSpatialAudio(preparedAudio);
 
   useEffect(() => {
@@ -142,8 +141,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
       setLocalError(null);
       setPlaybackError(null);
     } catch (uploadError) {
-      const message =
-        uploadError instanceof Error ? uploadError.message : "Image upload failed.";
+      const message = uploadError instanceof Error ? uploadError.message : "Image upload failed.";
       setLocalError(message);
     }
 
@@ -164,7 +162,11 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     setIsPlaying(false);
 
     try {
-      const generatedScene = await generateImage({ prompt: trimmedPrompt, random: false });
+      const generatedScene = await generateImage({
+        prompt: trimmedPrompt,
+        random: false,
+        isHighRes,
+      });
 
       setUploadedImageDataUrl(null);
       setUploadedImageUrl((previousUrl) => {
@@ -190,7 +192,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     setIsPlaying(false);
 
     try {
-      const generatedScene = await generateImage({ random: true });
+      const generatedScene = await generateImage({ random: true, isHighRes });
 
       setUploadedImageDataUrl(null);
       setUploadedImageUrl((previousUrl) => {
@@ -258,8 +260,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
       await playSpatialAudio();
       setIsPlaying(true);
     } catch (playError) {
-      const message =
-        playError instanceof Error ? playError.message : "Failed to start playback.";
+      const message = playError instanceof Error ? playError.message : "Failed to start playback.";
       setPlaybackError(message);
       setIsPlaying(false);
     }
@@ -282,9 +283,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     uploadedImageUrl ?? generatedImageDataUrl ?? generatedImageUrl ?? imageSrc ?? null;
   const shouldRenderImage = activeImageSrc !== null;
   const canDream =
-    uploadedImageDataUrl !== null ||
-    generatedImageDataUrl !== null ||
-    generatedImageUrl !== null;
+    uploadedImageDataUrl !== null || generatedImageDataUrl !== null || generatedImageUrl !== null;
   const canCreateScene =
     scenePrompt.trim().length > 0 && !isAnalyzing && !isPreparingAudio && !isGeneratingImage;
   const canRandomScene = !isAnalyzing && !isPreparingAudio && !isGeneratingImage;
@@ -329,7 +328,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           regionStartX,
           regionStartY,
           regionWidth,
-          regionHeight
+          regionHeight,
         );
         const luminance = calculateAverageLuminance(regionImageData.data);
         const nextTone = luminance > 0.56 ? "dark" : "light";
@@ -365,6 +364,23 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
         className="hidden"
         onChange={handleImageChange}
       />
+
+      {/* Settings Toggle (Top Left) */}
+      <div className="absolute left-6 top-6 z-20">
+        <button
+          onClick={() => setIsHighRes(!isHighRes)}
+          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all sm:px-4 sm:py-2 sm:text-sm ${
+            isHighRes
+              ? "border-amber-200/50 bg-amber-500/20 text-amber-50 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+              : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <Brain
+            className={`size-3 transition-transform sm:size-4 ${isHighRes ? "scale-110 fill-amber-300" : ""}`}
+          />
+          <span className="tracking-wide">{isHighRes ? "NANO BANANA PRO" : "NANO BANANA"}</span>
+        </button>
+      </div>
 
       {shouldRenderImage ? (
         <div className="dream-breath absolute inset-0 will-change-transform">

@@ -13,7 +13,7 @@ export type SfxCue = {
 
 export type DreamSceneAnalysis = {
   narrative: string;
-  sfx_cues: [SfxCue, SfxCue, SfxCue];
+  sfx_cues: SfxCue[];
 };
 
 export type NarratorAudioAsset = {
@@ -28,5 +28,5 @@ export type SfxAudioAsset = {
 
 export type DreamAudioAssets = {
   narrator: NarratorAudioAsset;
-  sfx: [SfxAudioAsset, SfxAudioAsset, SfxAudioAsset];
+  sfx: SfxAudioAsset[];
 };
