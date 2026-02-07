@@ -21,9 +21,9 @@
 
 ## **Phase 3: The Audio Layer (ElevenLabs)**
 
-* \[ \] **Voice API:** Build /api/generate-voice. 
-* \[ \] **SFX API:** Build /api/generate-sfx.  
-* \[ \] **Optimization:** Ensure the browser pre-loads these audio blobs so playback is instant.
+* \[x\] **Voice API:** Build /api/generate-voice. 
+* \[x\] **SFX API:** Build /api/generate-sfx.  
+* \[x\] **Optimization:** Ensure the browser pre-loads these audio blobs so playback is instant.
 
 ## **Phase 4: The Spatial Engine (Web Audio)**
 

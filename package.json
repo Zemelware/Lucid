@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "clean": "rm -rf .next",
+    "build": "npm run clean && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.34.0",
     "@openrouter/sdk": "latest",
     "framer-motion": "latest",
     "lucide-react": "latest",

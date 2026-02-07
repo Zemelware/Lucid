@@ -3,13 +3,14 @@
 import { motion } from "framer-motion";
 import { ImagePlus, MoonStar, Waves } from "lucide-react";
 
-import { useAudioStore } from "@/store/use-audio-store";
-
 type DreamControlsProps = {
   onUploadClick: () => void;
   onDreamClick: () => void;
+  onPlayToggle: () => void;
   isDreaming: boolean;
+  isPlaying: boolean;
   canDream: boolean;
+  canPlayAudio: boolean;
   statusMessage: string | null;
   dreamError: string | null;
   narrative: string | null;
@@ -18,20 +19,26 @@ type DreamControlsProps = {
 export function DreamControls({
   onUploadClick,
   onDreamClick,
+  onPlayToggle,
   isDreaming,
+  isPlaying,
   canDream,
+  canPlayAudio,
   statusMessage,
   dreamError,
   narrative
 }: DreamControlsProps) {
-  const isPlaying = useAudioStore((state) => state.isPlaying);
-  const setIsPlaying = useAudioStore((state) => state.setIsPlaying);
-
   const dreamButtonClassName = [
     "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
     canDream
       ? "border-white/15 bg-white/5 hover:bg-white/15"
       : "cursor-not-allowed border-white/10 bg-white/5 text-white/55"
+  ].join(" ");
+  const playButtonClassName = [
+    "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition",
+    canPlayAudio
+      ? "border-indigo-100/20 bg-indigo-100/15 text-indigo-50 hover:bg-indigo-100/25"
+      : "cursor-not-allowed border-indigo-100/10 bg-indigo-100/10 text-indigo-100/55"
   ].join(" ");
 
   return (
@@ -66,8 +73,9 @@ export function DreamControls({
         </button>
         <button
           type="button"
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-100/20 bg-indigo-100/15 px-4 py-2.5 text-sm font-semibold text-indigo-50 transition hover:bg-indigo-100/25"
+          onClick={onPlayToggle}
+          disabled={!canPlayAudio}
+          className={playButtonClassName}
         >
           <Waves className="size-4" aria-hidden="true" />
           {isPlaying ? "Pause" : "Play"}

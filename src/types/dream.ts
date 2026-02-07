@@ -16,3 +16,19 @@ export type DreamSceneAnalysis = {
   mood: string;
   sfx_cues: [SfxCue, SfxCue, SfxCue];
 };
+
+export type NarratorAudioAsset = {
+  blobUrl: string;
+  text: string;
+  mood: string;
+};
+
+export type SfxAudioAsset = {
+  blobUrl: string;
+  cue: SfxCue;
+};
+
+export type DreamAudioAssets = {
+  narrator: NarratorAudioAsset;
+  sfx: [SfxAudioAsset, SfxAudioAsset, SfxAudioAsset];
+};
