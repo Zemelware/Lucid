@@ -99,7 +99,7 @@ Full list: `mp3_22050_32`, `mp3_24000_48`, `mp3_44100_32`, `mp3_44100_64`, `mp3_
 - Be specific: "Heavy rain on a tin roof" > "Rain"
 - Combine elements: "Footsteps on gravel with distant traffic"
 - Specify style: "Cinematic braam, horror" or "8-bit retro jump sound"
-- Mention mood/context: "Eerie wind howling through an abandoned building"
+- Mention context: "Eerie wind howling through an abandoned building"
 
 ## Error Handling
 

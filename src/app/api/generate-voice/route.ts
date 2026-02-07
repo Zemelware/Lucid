@@ -11,7 +11,6 @@ const OUTPUT_FORMAT = "mp3_44100_128";
 
 type GenerateVoiceRequestBody = {
   text?: unknown;
-  mood?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -26,53 +25,13 @@ function readNonEmptyString(value: unknown, field: string): string {
   return value.trim();
 }
 
-function readOptionalString(value: unknown, field: string): string | null {
-  if (typeof value === "undefined") {
-    return null;
-  }
-
-  return readNonEmptyString(value, field);
-}
-
-function selectVoiceSettings(mood: string | null) {
-  const normalizedMood = mood?.toLowerCase() ?? "";
-
-  if (
-    normalizedMood.includes("whisper") ||
-    normalizedMood.includes("soft") ||
-    normalizedMood.includes("calm")
-  ) {
-    return {
-      stability: 0.68,
-      similarityBoost: 0.75,
-      style: 0.2,
-      useSpeakerBoost: true,
-      speed: 0.9
-    };
-  }
-
-  if (
-    normalizedMood.includes("eerie") ||
-    normalizedMood.includes("mystic") ||
-    normalizedMood.includes("cinematic")
-  ) {
-    return {
-      stability: 0.48,
-      similarityBoost: 0.74,
-      style: 0.58,
-      useSpeakerBoost: true,
-      speed: 0.92
-    };
-  }
-
-  return {
-    stability: 0.57,
-    similarityBoost: 0.75,
-    style: 0.35,
-    useSpeakerBoost: true,
-    speed: 0.92
-  };
-}
+const NARRATOR_VOICE_SETTINGS = {
+  stability: 0.68,
+  similarityBoost: 0.75,
+  style: 0.2,
+  useSpeakerBoost: true,
+  speed: 0.9
+} as const;
 
 export async function POST(request: Request) {
   let body: GenerateVoiceRequestBody;
@@ -93,7 +52,6 @@ export async function POST(request: Request) {
 
   try {
     const text = readNonEmptyString(body.text, "text");
-    const mood = readOptionalString(body.mood, "mood");
     const client = getElevenLabsClient();
 
     const audioStream = await client.textToSpeech.convert(NARRATOR_VOICE_ID, {
@@ -101,7 +59,7 @@ export async function POST(request: Request) {
       modelId: NARRATOR_MODEL_ID,
       outputFormat: OUTPUT_FORMAT,
       applyTextNormalization: "on",
-      voiceSettings: selectVoiceSettings(mood)
+      voiceSettings: NARRATOR_VOICE_SETTINGS
     });
 
     return new Response(audioStream, {

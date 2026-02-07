@@ -22,7 +22,6 @@ const USER_PROMPT = `
 Generate a dream analysis object with this structure:
 {
   "narrative": string,
-  "mood": string,
   "sfx_cues": [
     {
       "prompt": string,
@@ -35,7 +34,6 @@ Generate a dream analysis object with this structure:
 
 Requirements:
 - narrative: 110-190 words, second-person, hypnotic, sensory.
-- mood: short style keywords for voice synthesis.
 - sfx_cues: exactly 3 items, each distinct.
 - volume: range 0.0 to 1.0.
 `.trim();
@@ -43,15 +41,11 @@ Requirements:
 const DREAM_ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["narrative", "mood", "sfx_cues"],
+  required: ["narrative", "sfx_cues"],
   properties: {
     narrative: {
       type: "string",
       minLength: 60
-    },
-    mood: {
-      type: "string",
-      minLength: 2
     },
     sfx_cues: {
       type: "array",
@@ -246,7 +240,6 @@ function parseDreamSceneAnalysis(value: unknown): DreamSceneAnalysis {
 
   return {
     narrative: readNonEmptyString(value.narrative, "narrative"),
-    mood: readNonEmptyString(value.mood, "mood"),
     sfx_cues: [sfxCues[0], sfxCues[1], sfxCues[2]]
   };
 }

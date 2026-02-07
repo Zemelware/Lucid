@@ -13,14 +13,12 @@ export type SfxCue = {
 
 export type DreamSceneAnalysis = {
   narrative: string;
-  mood: string;
   sfx_cues: [SfxCue, SfxCue, SfxCue];
 };
 
 export type NarratorAudioAsset = {
   blobUrl: string;
   text: string;
-  mood: string;
 };
 
 export type SfxAudioAsset = {

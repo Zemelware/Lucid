@@ -38,7 +38,6 @@ Crucially, Lucid creates a **physically distinct 3D soundstage**. It doesn't jus
   1. Receives image (Multimodal input).  
   2. Outputs JSON via client.chat.send():  
      * narrative: String. A hypnotic, second-person script.
-     * mood: String. Keywords for the voice style.  
      * sfx\_cues: Array of:  
        * prompt: String.  
        * position\_3d: { x: number, y: number, z: number }.  

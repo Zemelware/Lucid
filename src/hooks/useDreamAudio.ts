@@ -153,8 +153,7 @@ export function useDreamAudio() {
         const narratorPromise = getAudioBlob(
           "/api/generate-voice",
           {
-            text: analysis.narrative,
-            mood: analysis.mood
+            text: analysis.narrative
           },
           controller.signal
         );
@@ -203,8 +202,7 @@ export function useDreamAudio() {
         const nextPreparedAudio: DreamAudioAssets = {
           narrator: {
             blobUrl: narratorBlobUrl,
-            text: analysis.narrative,
-            mood: analysis.mood
+            text: analysis.narrative
           },
           sfx: [sfxAssets[0], sfxAssets[1], sfxAssets[2]]
         };
