@@ -3,7 +3,7 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { motion } from "framer-motion";
-import { Brain, Volume2 } from "lucide-react";
+import { Brain, ChevronDown, Volume2 } from "lucide-react";
 import Image from "next/image";
 
 import { DreamControls } from "@/components/controls/dream-controls";
@@ -17,6 +17,23 @@ import { useSettingsStore } from "@/store/use-settings-store";
 type DreamCanvasProps = {
   imageSrc?: string;
 };
+
+function formatCueIdLabel(value: string): string {
+  const normalized = value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  if (normalized.length === 0) {
+    return "Untitled Cue";
+  }
+
+  return normalized
+    .split(" ")
+    .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
 
 function calculateAverageLuminance(data: Uint8ClampedArray): number {
   let totalLuminance = 0;
@@ -42,6 +59,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedImageDataUrl, setGeneratedImageDataUrl] = useState<string | null>(null);
+  const [isVolumePanelOpen, setIsVolumePanelOpen] = useState(false);
   const [scenePrompt, setScenePrompt] = useState("");
   const [panelTone, setPanelTone] = useState<"light" | "dark">("light");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -61,6 +79,10 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const setIsHighRes = useSettingsStore((state) => state.setIsHighRes);
   const sfxVolume = useSettingsStore((state) => state.sfxVolume);
   const setSfxVolume = useSettingsStore((state) => state.setSfxVolume);
+  const sfxCueVolumes = useSettingsStore((state) => state.sfxCueVolumes);
+  const setSfxCueVolume = useSettingsStore((state) => state.setSfxCueVolume);
+  const syncSfxCueVolumes = useSettingsStore((state) => state.syncSfxCueVolumes);
+  const clearSfxCueVolumes = useSettingsStore((state) => state.clearSfxCueVolumes);
   const {
     play: playSpatialAudio,
     pause: pauseSpatialAudio,
@@ -97,6 +119,15 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
       setIsPlaying(false);
     }
   }, [currentTimeSeconds, durationSeconds, isPlaying, setIsPlaying]);
+
+  useEffect(() => {
+    if (!preparedAudio) {
+      clearSfxCueVolumes();
+      return;
+    }
+
+    syncSfxCueVolumes(preparedAudio.timeline.cues.map((cue) => cue.id));
+  }, [clearSfxCueVolumes, preparedAudio, syncSfxCueVolumes]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -293,6 +324,18 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const canPlayAudio =
     preparedAudio !== null && !isPreparingAudio && !isGeneratingImage && !isAnalyzing;
   const canSeekAudio = canPlayAudio && durationSeconds > 0;
+  const sfxCues = preparedAudio?.timeline.cues ?? [];
+  const sfxPanelToneClassName =
+    panelTone === "dark"
+      ? "border-white/10 bg-slate-950/45 text-slate-100 shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
+      : "border-white/20 bg-white/10 text-white shadow-glass";
+  const sfxPanelLabelClassName = panelTone === "dark" ? "text-slate-100/78" : "text-white/75";
+  const sfxPanelMutedClassName = panelTone === "dark" ? "text-slate-200/60" : "text-white/55";
+  const sfxPanelDividerClassName = panelTone === "dark" ? "border-white/10" : "border-white/20";
+  const sfxMasterTrackClassName =
+    "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-300";
+  const sfxCueTrackClassName =
+    "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-cyan-300";
 
   useEffect(() => {
     if (!activeImageSrc) {
@@ -384,24 +427,95 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
         </button>
       </div>
 
-      {/* SFX Volume Control (Top Right) */}
-      <div className="absolute right-6 top-6 z-20 flex flex-col items-end gap-1.5">
-        <div className="flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-md transition-all sm:px-4 sm:py-2">
-          <Volume2 className="size-3 text-white/50 sm:size-4" aria-hidden="true" />
-          <input
-            type="range"
-            min={0}
-            max={3}
-            step={0.05}
-            value={sfxVolume}
-            onChange={(event) => setSfxVolume(Number(event.currentTarget.value))}
-            className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-300 sm:w-28"
-            aria-label="Sound effects volume"
-          />
+      {/* SFX Mix Control (Top Right) */}
+      <div className="absolute right-4 top-4 z-20 w-[min(88vw,22rem)] sm:right-6 sm:top-6">
+        <div className={`rounded-2xl border p-2.5 backdrop-blur-xl ${sfxPanelToneClassName}`}>
+          <button
+            type="button"
+            onClick={() => setIsVolumePanelOpen((previous) => !previous)}
+            className="flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+            aria-expanded={isVolumePanelOpen}
+            aria-controls="sfx-mix-panel"
+          >
+            <span className={`flex items-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase ${sfxPanelLabelClassName}`}>
+              <Volume2 className="size-3.5" aria-hidden="true" />
+              SFX Mix
+            </span>
+            <span className={`flex items-center gap-1.5 text-[11px] ${sfxPanelMutedClassName}`}>
+              {isVolumePanelOpen ? "Hide" : "Show"}
+              <ChevronDown
+                className={`size-3.5 transition-transform ${isVolumePanelOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </span>
+          </button>
+
+          <div
+            id="sfx-mix-panel"
+            className={`overflow-hidden transition-all duration-200 ${
+              isVolumePanelOpen ? `mt-2 max-h-[24rem] border-t pt-3 ${sfxPanelDividerClassName}` : "max-h-0"
+            }`}
+          >
+            <div className="space-y-3">
+              <div className="grid grid-cols-[minmax(0,6rem)_1fr] items-center gap-3">
+                <span className={`truncate text-[11px] font-semibold tracking-[0.14em] uppercase ${sfxPanelLabelClassName}`}>
+                  Master
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={sfxVolume}
+                  onChange={(event) => setSfxVolume(Number(event.currentTarget.value))}
+                  className={sfxMasterTrackClassName}
+                  aria-label="Master sound effects volume"
+                />
+              </div>
+
+              {sfxCues.length > 0 ? (
+                <div className="dream-scrollbar max-h-44 space-y-2 overflow-y-auto pr-1.5">
+                  {sfxCues.map((cue, index) => {
+                    const cueVolume = sfxCueVolumes[cue.id] ?? 1;
+                    const cueVolumeInputId = `sfx-cue-volume-${index}`;
+
+                    return (
+                      <div
+                        key={cue.id}
+                        className="grid grid-cols-[minmax(0,8.5rem)_1fr] items-center gap-3"
+                      >
+                        <label
+                          htmlFor={cueVolumeInputId}
+                          className={`truncate text-[11px] font-medium ${sfxPanelLabelClassName}`}
+                          title={cue.id}
+                        >
+                          {formatCueIdLabel(cue.id)}
+                        </label>
+                        <input
+                          id={cueVolumeInputId}
+                          type="range"
+                          min={0}
+                          max={2}
+                          step={0.05}
+                          value={cueVolume}
+                          onChange={(event) =>
+                            setSfxCueVolume(cue.id, Number(event.currentTarget.value))
+                          }
+                          className={sfxCueTrackClassName}
+                          aria-label={`Volume for ${formatCueIdLabel(cue.id)}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className={`text-[11px] ${sfxPanelMutedClassName}`}>
+                  Generate a dream to unlock individual sound controls.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-        <span className="mr-1.5 text-[10px] font-bold text-indigo-100/70 uppercase tracking-[0.25em]">
-          SFX Boost
-        </span>
       </div>
 
       {shouldRenderImage ? (

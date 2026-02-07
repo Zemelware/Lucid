@@ -212,6 +212,7 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
   const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const sfxVolume = useSettingsStore((s) => s.sfxVolume);
+  const sfxCueVolumes = useSettingsStore((s) => s.sfxCueVolumes);
   const audioContextRef = useRef<AudioContext | null>(null);
   const graphRef = useRef<SpatialGraph | null>(null);
   const detachNarratorListenersRef = useRef<(() => void) | null>(null);
@@ -259,7 +260,8 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
 
       graph.timelineCueTracks.forEach(({ cue, track }) => {
         const envelope = computeCueEnvelope(cue, timelineTimeSeconds);
-        const gain = clamp(cue.volume, 0, 1) * envelope;
+        const cueVolumeBoost = useSettingsStore.getState().sfxCueVolumes[cue.id] ?? 1;
+        const gain = clamp(cue.volume * cueVolumeBoost, 0, 3) * envelope;
         track.gain.gain.setValueAtTime(gain, context.currentTime);
 
         const cueDurationSeconds = cue.end_sec - cue.start_sec;
@@ -456,6 +458,15 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       );
     }
   }, [sfxVolume]);
+
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) {
+      return;
+    }
+
+    applyTimelineAtNarratorTime(graph, graph.narrator.element.currentTime);
+  }, [applyTimelineAtNarratorTime, sfxCueVolumes]);
 
   const play = useCallback(async () => {
     const graph = graphRef.current;

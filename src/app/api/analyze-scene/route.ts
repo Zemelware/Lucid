@@ -233,38 +233,12 @@ function extractTextContent(content: unknown): string {
   return textChunks.join("\n").trim();
 }
 
-function tryParseJson(input: string): { ok: true; value: unknown } | { ok: false } {
-  try {
-    return { ok: true, value: JSON.parse(input) as unknown };
-  } catch {
-    return { ok: false };
-  }
-}
-
 function parseModelJson(content: string): unknown {
-  const direct = tryParseJson(content);
-  if (direct.ok) {
-    return direct.value;
+  try {
+    return JSON.parse(content) as unknown;
+  } catch {
+    throw new Error("Model output was not valid JSON.");
   }
-
-  const fencedJsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fencedJsonMatch?.[1]) {
-    const fenced = tryParseJson(fencedJsonMatch[1].trim());
-    if (fenced.ok) {
-      return fenced.value;
-    }
-  }
-
-  const firstBrace = content.indexOf("{");
-  const lastBrace = content.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    const cropped = tryParseJson(content.slice(firstBrace, lastBrace + 1));
-    if (cropped.ok) {
-      return cropped.value;
-    }
-  }
-
-  throw new Error("Model output was not valid JSON.");
 }
 
 function parsePosition3D(value: unknown, path: string): Position3D {
@@ -367,6 +341,63 @@ function parseDreamSceneAnalysis(value: unknown): DreamSceneAnalysis {
   };
 }
 
+const MAX_ANALYSIS_ATTEMPTS = 3;
+
+function buildMessages(imageInput: string) {
+  return [
+    {
+      role: "system" as const,
+      content: SYSTEM_PROMPT,
+    },
+    {
+      role: "user" as const,
+      content: [
+        {
+          type: "text" as const,
+          text: USER_PROMPT,
+        },
+        {
+          type: "image_url" as const,
+          imageUrl: {
+            url: imageInput,
+            detail: "high" as const,
+          },
+        },
+      ],
+    },
+  ];
+}
+
+async function requestStrictJsonAnalysis(imageInput: string) {
+  const client = getOpenRouterClient();
+  return client.chat.send({
+    chatGenerationParams: {
+      stream: false,
+      model: MODEL_NAME,
+      temperature: 0.8,
+      messages: buildMessages(imageInput),
+      responseFormat: {
+        type: "json_schema",
+        jsonSchema: {
+          name: "dream_scene_analysis_timeline",
+          strict: true,
+          schema: DREAM_ANALYSIS_RESPONSE_SCHEMA,
+        },
+      },
+    },
+  });
+}
+
+function parseCompletionAnalysis(completion: { choices?: Array<{ message?: { content?: unknown } }> }) {
+  const modelContent = extractTextContent(completion.choices?.[0]?.message?.content);
+  if (!modelContent) {
+    throw new Error("Model returned an empty response.");
+  }
+
+  const parsed = parseModelJson(modelContent);
+  return parseDreamSceneAnalysis(parsed);
+}
+
 export async function POST(request: Request) {
   let body: AnalyzeSceneRequestBody;
 
@@ -383,53 +414,31 @@ export async function POST(request: Request) {
 
   try {
     const imageInput = readImageInput(body);
-    const client = getOpenRouterClient();
+    let lastError: unknown = null;
+    let analysis: DreamSceneAnalysis | null = null;
 
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        stream: false,
-        model: MODEL_NAME,
-        temperature: 0.8,
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: USER_PROMPT,
-              },
-              {
-                type: "image_url",
-                imageUrl: {
-                  url: imageInput,
-                  detail: "high",
-                },
-              },
-            ],
-          },
-        ],
-        responseFormat: {
-          type: "json_schema",
-          jsonSchema: {
-            name: "dream_scene_analysis_timeline",
-            strict: true,
-            schema: DREAM_ANALYSIS_RESPONSE_SCHEMA,
-          },
-        },
-      },
-    });
-
-    const modelContent = extractTextContent(completion.choices[0]?.message?.content);
-    if (!modelContent) {
-      throw new Error("Model returned an empty response.");
+    for (let attempt = 1; attempt <= MAX_ANALYSIS_ATTEMPTS; attempt += 1) {
+      try {
+        const strictCompletion = await requestStrictJsonAnalysis(imageInput);
+        analysis = parseCompletionAnalysis(strictCompletion);
+        break;
+      } catch (attemptError) {
+        lastError = attemptError;
+        const message = attemptError instanceof Error ? attemptError.message : String(attemptError);
+        console.warn(
+          `[Lucid] analyze-scene attempt ${attempt}/${MAX_ANALYSIS_ATTEMPTS} failed.`,
+          message,
+        );
+      }
     }
 
-    const parsed = parseModelJson(modelContent);
-    const analysis = parseDreamSceneAnalysis(parsed);
+    if (!analysis) {
+      throw (
+        lastError instanceof Error
+          ? lastError
+          : new Error("Model response was invalid after retrying analysis.")
+      );
+    }
 
     console.log("[Lucid] Gemini timeline analysis:", JSON.stringify(analysis, null, 2));
     return NextResponse.json(analysis);
