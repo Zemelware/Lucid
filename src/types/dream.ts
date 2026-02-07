@@ -4,16 +4,27 @@ export type Position3D = {
   z: number;
 };
 
-export type SfxCue = {
+export type TimelineSfxCue = {
+  id: string;
   prompt: string;
-  position_3d: Position3D;
   loop: boolean;
   volume: number;
+  start_sec: number;
+  end_sec: number;
+  fade_in_sec?: number;
+  fade_out_sec?: number;
+  position_start: Position3D;
+  position_end: Position3D;
+};
+
+export type DreamTimeline = {
+  total_duration_sec: number;
+  cues: TimelineSfxCue[];
 };
 
 export type DreamSceneAnalysis = {
   narrative: string;
-  sfx_cues: SfxCue[];
+  timeline: DreamTimeline;
 };
 
 export type NarratorAudioAsset = {
@@ -23,10 +34,11 @@ export type NarratorAudioAsset = {
 
 export type SfxAudioAsset = {
   blobUrl: string;
-  cue: SfxCue;
+  cue: TimelineSfxCue;
 };
 
 export type DreamAudioAssets = {
   narrator: NarratorAudioAsset;
   sfx: SfxAudioAsset[];
+  timeline: DreamTimeline;
 };

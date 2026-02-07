@@ -3,7 +3,7 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { motion } from "framer-motion";
-import { Brain } from "lucide-react";
+import { Brain, Volume2 } from "lucide-react";
 import Image from "next/image";
 
 import { DreamControls } from "@/components/controls/dream-controls";
@@ -59,6 +59,8 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const setIsPlaying = useAudioStore((state) => state.setIsPlaying);
   const isHighRes = useSettingsStore((state) => state.isHighRes);
   const setIsHighRes = useSettingsStore((state) => state.setIsHighRes);
+  const sfxVolume = useSettingsStore((state) => state.sfxVolume);
+  const setSfxVolume = useSettingsStore((state) => state.setSfxVolume);
   const {
     play: playSpatialAudio,
     pause: pauseSpatialAudio,
@@ -380,6 +382,26 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           />
           <span className="tracking-wide">{isHighRes ? "NANO BANANA PRO" : "NANO BANANA"}</span>
         </button>
+      </div>
+
+      {/* SFX Volume Control (Top Right) */}
+      <div className="absolute right-6 top-6 z-20 flex flex-col items-end gap-1.5">
+        <div className="flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-md transition-all sm:px-4 sm:py-2">
+          <Volume2 className="size-3 text-white/50 sm:size-4" aria-hidden="true" />
+          <input
+            type="range"
+            min={0}
+            max={3}
+            step={0.05}
+            value={sfxVolume}
+            onChange={(event) => setSfxVolume(Number(event.currentTarget.value))}
+            className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-300 sm:w-28"
+            aria-label="Sound effects volume"
+          />
+        </div>
+        <span className="mr-1.5 text-[10px] font-bold text-indigo-100/70 uppercase tracking-[0.25em]">
+          SFX Boost
+        </span>
       </div>
 
       {shouldRenderImage ? (

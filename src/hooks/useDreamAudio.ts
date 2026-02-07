@@ -150,6 +150,11 @@ export function useDreamAudio() {
       let nextPreloadedElements: HTMLAudioElement[] = [];
 
       try {
+        const timeline = analysis.timeline;
+        if (!timeline || !Array.isArray(timeline.cues) || timeline.cues.length < 2) {
+          throw new Error("Dream timeline is missing or invalid.");
+        }
+
         const narratorPromise = getAudioBlob(
           "/api/generate-voice",
           {
@@ -158,7 +163,7 @@ export function useDreamAudio() {
           controller.signal,
         );
 
-        const sfxPromises = analysis.sfx_cues.map((cue) =>
+        const sfxPromises = timeline.cues.map((cue) =>
           getAudioBlob(
             "/api/generate-sfx",
             {
@@ -191,7 +196,7 @@ export function useDreamAudio() {
           return null;
         }
 
-        const sfxAssets = analysis.sfx_cues.map((cue, index) => ({
+        const sfxAssets = timeline.cues.map((cue, index) => ({
           blobUrl: sfxBlobUrls[index],
           cue,
         }));
@@ -202,6 +207,7 @@ export function useDreamAudio() {
             text: analysis.narrative,
           },
           sfx: sfxAssets,
+          timeline,
         };
 
         objectUrlsRef.current = nextObjectUrls;

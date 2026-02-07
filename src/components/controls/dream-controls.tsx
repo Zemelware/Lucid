@@ -11,7 +11,7 @@ import {
   MoonStar,
   Pause,
   Play,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 
 type DreamControlsProps = {
@@ -70,32 +70,32 @@ export function DreamControls({
   playbackTimeSeconds,
   playbackDurationSeconds,
   panelTone,
-  dreamError
+  dreamError,
 }: DreamControlsProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const createButtonClassName = [
     "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
     canCreateScene
       ? "border-violet-100/25 bg-violet-100/15 text-violet-50 hover:bg-violet-100/25"
-      : "cursor-not-allowed border-violet-100/10 bg-violet-100/10 text-violet-100/55"
+      : "cursor-not-allowed border-violet-100/10 bg-violet-100/10 text-violet-100/55",
   ].join(" ");
   const dreamButtonClassName = [
     "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
     canDream
       ? "border-white/15 bg-white/5 hover:bg-white/15"
-      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55"
+      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55",
   ].join(" ");
   const playButtonClassName = [
     "inline-flex size-8 items-center justify-center rounded-xl border transition",
     canPlayAudio
       ? "border-indigo-100/20 bg-indigo-100/15 text-indigo-50 hover:bg-indigo-100/25"
-      : "cursor-not-allowed border-indigo-100/10 bg-indigo-100/10 text-indigo-100/55"
+      : "cursor-not-allowed border-indigo-100/10 bg-indigo-100/10 text-indigo-100/55",
   ].join(" ");
   const randomButtonClassName = [
     "inline-flex items-center justify-center rounded-2xl border px-3 py-2.5 transition",
     canRandomScene
       ? "border-white/20 bg-white/10 text-white hover:bg-white/18"
-      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55"
+      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55",
   ].join(" ");
   const panelToggleButtonClassName =
     "inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 p-2 text-indigo-100/85 transition hover:bg-white/12";
@@ -105,17 +105,56 @@ export function DreamControls({
       : "border-white/20 bg-white/10 text-white shadow-glass backdrop-blur-xl";
   const sliderMax = playbackDurationSeconds > 0 ? playbackDurationSeconds : 1;
   const sliderValue =
-    playbackDurationSeconds > 0
-      ? Math.min(playbackTimeSeconds, playbackDurationSeconds)
-      : 0;
+    playbackDurationSeconds > 0 ? Math.min(playbackTimeSeconds, playbackDurationSeconds) : 0;
   const audioPanelClassName = [
     "rounded-xl border border-indigo-100/20 bg-black/20 px-2.5 py-2",
-    isCollapsed ? "mt-2" : "mt-3"
+    isCollapsed ? "mt-2" : "mt-3",
   ].join(" ");
   const audioTrackClassName = [
     "h-1 w-full flex-1 cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-200 disabled:cursor-not-allowed disabled:opacity-55",
-    isCollapsed ? "max-w-[340px]" : ""
+    isCollapsed ? "max-w-[340px]" : "",
   ].join(" ");
+
+  const renderPlaybackPanel = () => (
+    <div className={audioPanelClassName}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onPlayToggle}
+          disabled={!canPlayAudio}
+          className={playButtonClassName}
+          aria-label={isPlaying ? "Pause dream audio" : "Play dream audio"}
+          title={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? (
+            <Pause className="size-4" aria-hidden="true" />
+          ) : (
+            <Play className="size-4" aria-hidden="true" />
+          )}
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={sliderMax}
+          step={0.05}
+          value={sliderValue}
+          onChange={(event) => {
+            const nextValue = Number(event.currentTarget.value);
+            if (!Number.isFinite(nextValue)) {
+              return;
+            }
+            onPlaybackSeek(nextValue);
+          }}
+          disabled={!canSeekAudio}
+          className={audioTrackClassName}
+          aria-label="Dream playback timeline"
+        />
+        <span className="min-w-[72px] text-right text-[10px] tabular-nums text-indigo-100/75">
+          {formatPlaybackTime(playbackTimeSeconds)} / {formatPlaybackTime(playbackDurationSeconds)}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
@@ -150,47 +189,7 @@ export function DreamControls({
             transition={{ duration: 0.24, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            {showPlaybackControls ? (
-              <div className={audioPanelClassName}>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onPlayToggle}
-                    disabled={!canPlayAudio}
-                    className={playButtonClassName}
-                    aria-label={isPlaying ? "Pause dream audio" : "Play dream audio"}
-                    title={isPlaying ? "Pause" : "Play"}
-                  >
-                    {isPlaying ? (
-                      <Pause className="size-4" aria-hidden="true" />
-                    ) : (
-                      <Play className="size-4" aria-hidden="true" />
-                    )}
-                  </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={sliderMax}
-                    step={0.05}
-                    value={sliderValue}
-                    onChange={(event) => {
-                      const nextValue = Number(event.currentTarget.value);
-                      if (!Number.isFinite(nextValue)) {
-                        return;
-                      }
-                      onPlaybackSeek(nextValue);
-                    }}
-                    disabled={!canSeekAudio}
-                    className={audioTrackClassName}
-                    aria-label="Dream playback timeline"
-                  />
-                  <span className="min-w-[72px] text-right text-[10px] tabular-nums text-indigo-100/75">
-                    {formatPlaybackTime(playbackTimeSeconds)} /{" "}
-                    {formatPlaybackTime(playbackDurationSeconds)}
-                  </span>
-                </div>
-              </div>
-            ) : null}
+            {showPlaybackControls ? renderPlaybackPanel() : null}
           </motion.div>
         ) : null}
         {!isCollapsed ? (
@@ -251,47 +250,7 @@ export function DreamControls({
               </button>
             </div>
 
-            {showPlaybackControls ? (
-              <div className={audioPanelClassName}>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onPlayToggle}
-                    disabled={!canPlayAudio}
-                    className={playButtonClassName}
-                    aria-label={isPlaying ? "Pause dream audio" : "Play dream audio"}
-                    title={isPlaying ? "Pause" : "Play"}
-                  >
-                    {isPlaying ? (
-                      <Pause className="size-4" aria-hidden="true" />
-                    ) : (
-                      <Play className="size-4" aria-hidden="true" />
-                    )}
-                  </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={sliderMax}
-                    step={0.05}
-                    value={sliderValue}
-                    onChange={(event) => {
-                      const nextValue = Number(event.currentTarget.value);
-                      if (!Number.isFinite(nextValue)) {
-                        return;
-                      }
-                      onPlaybackSeek(nextValue);
-                    }}
-                    disabled={!canSeekAudio}
-                    className={audioTrackClassName}
-                    aria-label="Dream playback timeline"
-                  />
-                  <span className="min-w-[72px] text-right text-[10px] tabular-nums text-indigo-100/75">
-                    {formatPlaybackTime(playbackTimeSeconds)} /{" "}
-                    {formatPlaybackTime(playbackDurationSeconds)}
-                  </span>
-                </div>
-              </div>
-            ) : null}
+            {showPlaybackControls ? renderPlaybackPanel() : null}
 
             {dreamError ? <p className="mt-2 text-xs text-rose-200">{dreamError}</p> : null}
           </motion.div>

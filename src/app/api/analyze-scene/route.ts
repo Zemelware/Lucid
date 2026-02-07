@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
 
 import { getOpenRouterClient } from "@/lib/openrouter";
-import type { DreamSceneAnalysis, Position3D, SfxCue } from "@/types/dream";
+import type { DreamSceneAnalysis, DreamTimeline, Position3D, TimelineSfxCue } from "@/types/dream";
 
 export const runtime = "nodejs";
 
 const MODEL_NAME = "google/gemini-3-flash-preview";
 
 const SYSTEM_PROMPT = `
-You are a Dream Guide.
+You are a Dream Director for Lucid.
 Analyze the provided image and produce a hypnotic second-person narrative.
-Identify between 2 and 5 distinct environmental sound sources from the scene.
-Vary the positioning to create depth: some sounds should be close to the listener, and some more distant.
-Each sound source must have strict 3D coordinates:
-- x controls left/right and must be between -10 and 10.
-- z controls front/back and must be between -10 and 10.
-- y controls vertical placement and must be between -10 and 10.
+Design a timed dream timeline.
+Create between 2 and 5 distinct sound cues with movement over time.
+Each cue must define both start and end 3D positions.
+Coordinates must be in range -10 to 10 for x, y, z.
 Return only valid JSON. Do not include markdown, commentary, or extra keys.
 `.trim();
 
@@ -23,61 +21,128 @@ const USER_PROMPT = `
 Generate a dream analysis object with this structure:
 {
   "narrative": string,
-  "sfx_cues": [
-    {
-      "prompt": string,
-      "position_3d": { "x": number, "y": number, "z": number },
-      "loop": boolean,
-      "volume": number
-    }
-  ]
+  "timeline": {
+    "total_duration_sec": number,
+    "cues": [
+      {
+        "id": string,
+        "prompt": string,
+        "loop": boolean,
+        "volume": number,
+        "start_sec": number,
+        "end_sec": number,
+        "fade_in_sec": number,
+        "fade_out_sec": number,
+        "position_start": { "x": number, "y": number, "z": number },
+        "position_end": { "x": number, "y": number, "z": number }
+      }
+    ]
+  }
 }
 
 Requirements:
 - narrative: 110-190 words, second-person, hypnotic, sensory.
-- sfx_cues: 2 to 5 items, each distinct.
+- timeline.total_duration_sec: 45-120 seconds.
+- cues: 2 to 5 items, each distinct and spatially meaningful.
+- cue timing must be within total_duration_sec.
 - volume: range 0.0 to 1.0.
+- fade_in_sec and fade_out_sec: 0.5 to 5 seconds.
 `.trim();
 
 const DREAM_ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["narrative", "sfx_cues"],
+  required: ["narrative", "timeline"],
   properties: {
     narrative: {
       type: "string",
       minLength: 60,
     },
-    sfx_cues: {
-      type: "array",
-      minItems: 2,
-      maxItems: 5,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["prompt", "position_3d", "loop", "volume"],
-        properties: {
-          prompt: {
-            type: "string",
-            minLength: 3,
-          },
-          position_3d: {
+    timeline: {
+      type: "object",
+      additionalProperties: false,
+      required: ["total_duration_sec", "cues"],
+      properties: {
+        total_duration_sec: {
+          type: "number",
+          minimum: 20,
+          maximum: 180,
+        },
+        cues: {
+          type: "array",
+          minItems: 2,
+          maxItems: 5,
+          items: {
             type: "object",
             additionalProperties: false,
-            required: ["x", "y", "z"],
+            required: [
+              "id",
+              "prompt",
+              "loop",
+              "volume",
+              "start_sec",
+              "end_sec",
+              "fade_in_sec",
+              "fade_out_sec",
+              "position_start",
+              "position_end",
+            ],
             properties: {
-              x: { type: "number", minimum: -10, maximum: 10 },
-              y: { type: "number", minimum: -10, maximum: 10 },
-              z: { type: "number", minimum: -10, maximum: 10 },
+              id: {
+                type: "string",
+                minLength: 1,
+              },
+              prompt: {
+                type: "string",
+                minLength: 3,
+              },
+              loop: {
+                type: "boolean",
+              },
+              volume: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              start_sec: {
+                type: "number",
+                minimum: 0,
+              },
+              end_sec: {
+                type: "number",
+                minimum: 0,
+              },
+              fade_in_sec: {
+                type: "number",
+                minimum: 0.5,
+                maximum: 5,
+              },
+              fade_out_sec: {
+                type: "number",
+                minimum: 0.5,
+                maximum: 5,
+              },
+              position_start: {
+                type: "object",
+                additionalProperties: false,
+                required: ["x", "y", "z"],
+                properties: {
+                  x: { type: "number", minimum: -10, maximum: 10 },
+                  y: { type: "number", minimum: -10, maximum: 10 },
+                  z: { type: "number", minimum: -10, maximum: 10 },
+                },
+              },
+              position_end: {
+                type: "object",
+                additionalProperties: false,
+                required: ["x", "y", "z"],
+                properties: {
+                  x: { type: "number", minimum: -10, maximum: 10 },
+                  y: { type: "number", minimum: -10, maximum: 10 },
+                  z: { type: "number", minimum: -10, maximum: 10 },
+                },
+              },
             },
-          },
-          loop: {
-            type: "boolean",
-          },
-          volume: {
-            type: "number",
-            minimum: 0,
-            maximum: 1,
           },
         },
       },
@@ -116,6 +181,14 @@ function readNumber(value: unknown, field: string): number {
   }
 
   return value;
+}
+
+function readOptionalNumber(value: unknown, field: string): number | undefined {
+  if (typeof value === "undefined" || value === null) {
+    return undefined;
+  }
+
+  return readNumber(value, field);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -206,16 +279,80 @@ function parsePosition3D(value: unknown, path: string): Position3D {
   return { x, y, z };
 }
 
-function parseSfxCue(value: unknown, index: number): SfxCue {
-  if (!isRecord(value)) {
-    throw new Error(`sfx_cues[${index}] must be an object.`);
+function normalizeTimelineDuration(value: number): number {
+  return clamp(value, 20, 180);
+}
+
+function normalizeCueWindow(startSec: number, endSec: number, totalDuration: number) {
+  const minCueDuration = 0.5;
+
+  let normalizedStart = clamp(startSec, 0, totalDuration);
+  let normalizedEnd = clamp(endSec, 0, totalDuration);
+
+  if (normalizedEnd - normalizedStart < minCueDuration) {
+    normalizedStart = Math.min(normalizedStart, Math.max(0, totalDuration - minCueDuration));
+    normalizedEnd = Math.min(totalDuration, normalizedStart + minCueDuration);
+  }
+
+  if (normalizedEnd <= normalizedStart) {
+    normalizedStart = 0;
+    normalizedEnd = Math.min(totalDuration, minCueDuration);
   }
 
   return {
-    prompt: readNonEmptyString(value.prompt, `sfx_cues[${index}].prompt`),
-    position_3d: parsePosition3D(value.position_3d, `sfx_cues[${index}].position_3d`),
-    loop: readBoolean(value.loop, `sfx_cues[${index}].loop`),
-    volume: clamp(readNumber(value.volume, `sfx_cues[${index}].volume`), 0, 1),
+    startSec: normalizedStart,
+    endSec: normalizedEnd,
+  };
+}
+
+function parseTimelineCue(value: unknown, index: number, totalDuration: number): TimelineSfxCue {
+  if (!isRecord(value)) {
+    throw new Error(`timeline.cues[${index}] must be an object.`);
+  }
+
+  const startSec = readNumber(value.start_sec, `timeline.cues[${index}].start_sec`);
+  const endSec = readNumber(value.end_sec, `timeline.cues[${index}].end_sec`);
+  const normalizedWindow = normalizeCueWindow(startSec, endSec, totalDuration);
+
+  const fadeIn = readOptionalNumber(value.fade_in_sec, `timeline.cues[${index}].fade_in_sec`);
+  const fadeOut = readOptionalNumber(value.fade_out_sec, `timeline.cues[${index}].fade_out_sec`);
+
+  return {
+    id: readNonEmptyString(value.id, `timeline.cues[${index}].id`),
+    prompt: readNonEmptyString(value.prompt, `timeline.cues[${index}].prompt`),
+    loop: readBoolean(value.loop, `timeline.cues[${index}].loop`),
+    volume: clamp(readNumber(value.volume, `timeline.cues[${index}].volume`), 0, 1),
+    start_sec: normalizedWindow.startSec,
+    end_sec: normalizedWindow.endSec,
+    fade_in_sec: typeof fadeIn === "number" ? clamp(fadeIn, 0.5, 5) : undefined,
+    fade_out_sec: typeof fadeOut === "number" ? clamp(fadeOut, 0.5, 5) : undefined,
+    position_start: parsePosition3D(
+      value.position_start,
+      `timeline.cues[${index}].position_start`,
+    ),
+    position_end: parsePosition3D(value.position_end, `timeline.cues[${index}].position_end`),
+  };
+}
+
+function parseTimeline(value: unknown): DreamTimeline {
+  if (!isRecord(value)) {
+    throw new Error("timeline must be an object.");
+  }
+
+  const totalDuration = normalizeTimelineDuration(
+    readNumber(value.total_duration_sec, "timeline.total_duration_sec"),
+  );
+
+  const cuesValue = value.cues;
+  if (!Array.isArray(cuesValue) || cuesValue.length < 2 || cuesValue.length > 5) {
+    throw new Error("timeline.cues must contain between 2 and 5 items.");
+  }
+
+  const normalizedCues = cuesValue.map((cue, index) => parseTimelineCue(cue, index, totalDuration));
+
+  return {
+    total_duration_sec: totalDuration,
+    cues: normalizedCues,
   };
 }
 
@@ -224,16 +361,9 @@ function parseDreamSceneAnalysis(value: unknown): DreamSceneAnalysis {
     throw new Error("Response must be a JSON object.");
   }
 
-  const cuesValue = value.sfx_cues;
-  if (!Array.isArray(cuesValue) || cuesValue.length < 2 || cuesValue.length > 5) {
-    throw new Error("sfx_cues must contain between 2 and 5 items.");
-  }
-
-  const sfxCues = cuesValue.map((cue, index) => parseSfxCue(cue, index));
-
   return {
     narrative: readNonEmptyString(value.narrative, "narrative"),
-    sfx_cues: sfxCues,
+    timeline: parseTimeline(value.timeline),
   };
 }
 
@@ -285,7 +415,7 @@ export async function POST(request: Request) {
         responseFormat: {
           type: "json_schema",
           jsonSchema: {
-            name: "dream_scene_analysis",
+            name: "dream_scene_analysis_timeline",
             strict: true,
             schema: DREAM_ANALYSIS_RESPONSE_SCHEMA,
           },
@@ -295,18 +425,16 @@ export async function POST(request: Request) {
 
     const modelContent = extractTextContent(completion.choices[0]?.message?.content);
     if (!modelContent) {
-      return NextResponse.json({ error: "Model returned an empty response." }, { status: 502 });
+      throw new Error("Model returned an empty response.");
     }
 
     const parsed = parseModelJson(modelContent);
     const analysis = parseDreamSceneAnalysis(parsed);
 
-    console.log("SFX CUES:", JSON.stringify(analysis.sfx_cues, null, 2));
-
+    console.log("[Lucid] Gemini timeline analysis:", JSON.stringify(analysis, null, 2));
     return NextResponse.json(analysis);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected analyze-scene failure.";
-
     const status = message.includes("OPENROUTER_API_KEY") ? 500 : 502;
 
     return NextResponse.json({ error: message }, { status });
