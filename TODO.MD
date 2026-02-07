@@ -42,5 +42,6 @@
 
 ## **Phase 6**
 
-* \[ \] **Playback controls:** Dedicated controls to play/pause audio (with appropriate icons) and scrub to different points in the audio
-* \[ \] **Collapsible control panel:** The controls panel with all the buttons should be collapsible to see more of the image
+* \[x\] **Playback controls:** Dedicated controls to play/pause audio (with appropriate icons) and scrub to different points in the audio
+* \[x\] **Collapsible control panel:** The controls panel with all the buttons should be collapsible to see more of the image
+* \[x\] **Readability of control panel:** if background underneath control panel is light then make control panel a dark tone to be readable and vice-versa (default to light mode)

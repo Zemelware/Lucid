@@ -6,13 +6,12 @@
     "node": ">=20 <23"
   },
   "scripts": {
-    "predev": "npm run clean",
-    "dev": "next dev",
-    "clean": "rm -rf .next",
-    "build": "npm run clean && next build",
-    "start": "next start",
+    "dev": "npx -y node@22 ./node_modules/next/dist/bin/next dev",
+    "clean": "rm -rf .next .next-build",
+    "build": "npm run clean && npx -y node@22 ./node_modules/next/dist/bin/next build",
+    "start": "npx -y node@22 ./node_modules/next/dist/bin/next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit --incremental false"
+    "typecheck": "npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.34.0",

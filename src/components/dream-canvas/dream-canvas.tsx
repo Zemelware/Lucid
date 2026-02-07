@@ -16,6 +16,24 @@ type DreamCanvasProps = {
   imageSrc?: string;
 };
 
+function calculateAverageLuminance(data: Uint8ClampedArray): number {
+  let totalLuminance = 0;
+  const pixelCount = data.length / 4;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index] / 255;
+    const green = data[index + 1] / 255;
+    const blue = data[index + 2] / 255;
+    totalLuminance += 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  }
+
+  if (pixelCount === 0) {
+    return 0;
+  }
+
+  return totalLuminance / pixelCount;
+}
+
 export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -23,9 +41,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedImageDataUrl, setGeneratedImageDataUrl] = useState<string | null>(null);
   const [scenePrompt, setScenePrompt] = useState("");
-  const [statusMessage, setStatusMessage] = useState<string | null>(
-    "Upload an image or create a new scene."
-  );
+  const [panelTone, setPanelTone] = useState<"light" | "dark">("light");
   const [localError, setLocalError] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const { isAnalyzing, error, analyzeScene, clearAnalysis } = useGemini();
@@ -48,6 +64,9 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     play: playSpatialAudio,
     pause: pauseSpatialAudio,
     stop: stopSpatialAudio,
+    seek: seekSpatialAudio,
+    currentTimeSeconds,
+    durationSeconds,
     error: spatialAudioError
   } = useSpatialAudio(preparedAudio);
 
@@ -67,6 +86,16 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   useEffect(() => {
     return stopSpatialAudio;
   }, [stopSpatialAudio]);
+
+  useEffect(() => {
+    if (!isPlaying || durationSeconds <= 0) {
+      return;
+    }
+
+    if (currentTimeSeconds >= durationSeconds - 0.05) {
+      setIsPlaying(false);
+    }
+  }, [currentTimeSeconds, durationSeconds, isPlaying, setIsPlaying]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -112,12 +141,10 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
       setIsPlaying(false);
       setLocalError(null);
       setPlaybackError(null);
-      setStatusMessage("Ready.");
     } catch (uploadError) {
       const message =
         uploadError instanceof Error ? uploadError.message : "Image upload failed.";
       setLocalError(message);
-      setStatusMessage(null);
     }
 
     input.value = "";
@@ -135,7 +162,6 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     clearImageGenerationError();
     stopSpatialAudio();
     setIsPlaying(false);
-    setStatusMessage("Creating scene...");
 
     try {
       const generatedScene = await generateImage({ prompt: trimmedPrompt, random: false });
@@ -153,10 +179,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
 
       clearAnalysis();
       clearPreparedAudio();
-      setStatusMessage("Scene ready. Press Dream.");
-    } catch {
-      setStatusMessage(null);
-    }
+    } catch {}
   };
 
   const handleRandomSceneClick = async () => {
@@ -165,7 +188,6 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     clearImageGenerationError();
     stopSpatialAudio();
     setIsPlaying(false);
-    setStatusMessage("Rolling a random scene...");
 
     try {
       const generatedScene = await generateImage({ random: true });
@@ -183,10 +205,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
 
       clearAnalysis();
       clearPreparedAudio();
-      setStatusMessage("Random scene ready. Press Dream.");
-    } catch {
-      setStatusMessage(null);
-    }
+    } catch {}
   };
 
   const handleDreamClick = async () => {
@@ -200,7 +219,6 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
 
     if (!imagePayload) {
       setLocalError("Upload an image or create a scene before you click Dream.");
-      setStatusMessage("Upload an image or create a new scene.");
       return;
     }
 
@@ -208,22 +226,11 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     setPlaybackError(null);
     stopSpatialAudio();
     setIsPlaying(false);
-    setStatusMessage("Analyzing...");
 
     try {
       const dreamAnalysis = await analyzeScene(imagePayload);
-      setStatusMessage("Generating audio...");
-      const generatedAudio = await prepareAudio(dreamAnalysis);
-
-      if (generatedAudio) {
-        setStatusMessage("Ready to play.");
-        return;
-      }
-
-      setStatusMessage("Audio not ready.");
-    } catch {
-      setStatusMessage(null);
-    }
+      await prepareAudio(dreamAnalysis);
+    } catch {}
   };
 
   const handlePlayToggle = async () => {
@@ -258,6 +265,19 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     }
   };
 
+  const handlePlaybackSeek = (nextSeconds: number) => {
+    if (!preparedAudio) {
+      return;
+    }
+
+    setPlaybackError(null);
+    seekSpatialAudio(nextSeconds);
+
+    if (durationSeconds > 0 && nextSeconds >= durationSeconds) {
+      setIsPlaying(false);
+    }
+  };
+
   const activeImageSrc =
     uploadedImageUrl ?? generatedImageDataUrl ?? generatedImageUrl ?? imageSrc ?? null;
   const shouldRenderImage = activeImageSrc !== null;
@@ -268,8 +288,73 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const canCreateScene =
     scenePrompt.trim().length > 0 && !isAnalyzing && !isPreparingAudio && !isGeneratingImage;
   const canRandomScene = !isAnalyzing && !isPreparingAudio && !isGeneratingImage;
+  const showPlaybackControls = preparedAudio !== null;
   const canPlayAudio =
     preparedAudio !== null && !isPreparingAudio && !isGeneratingImage && !isAnalyzing;
+  const canSeekAudio = canPlayAudio && durationSeconds > 0;
+
+  useEffect(() => {
+    if (!activeImageSrc) {
+      setPanelTone("light");
+      return;
+    }
+
+    let didCancel = false;
+    const sampleImage = new window.Image();
+    sampleImage.decoding = "async";
+    sampleImage.crossOrigin = "anonymous";
+
+    const onLoad = () => {
+      if (didCancel) {
+        return;
+      }
+
+      try {
+        const canvas = document.createElement("canvas");
+        const sampleSize = 96;
+        canvas.width = sampleSize;
+        canvas.height = sampleSize;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          setPanelTone("light");
+          return;
+        }
+
+        context.drawImage(sampleImage, 0, 0, sampleSize, sampleSize);
+        const regionStartX = Math.floor(sampleSize * 0.3);
+        const regionStartY = Math.floor(sampleSize * 0.68);
+        const regionWidth = Math.floor(sampleSize * 0.4);
+        const regionHeight = Math.floor(sampleSize * 0.28);
+        const regionImageData = context.getImageData(
+          regionStartX,
+          regionStartY,
+          regionWidth,
+          regionHeight
+        );
+        const luminance = calculateAverageLuminance(regionImageData.data);
+        const nextTone = luminance > 0.56 ? "dark" : "light";
+        setPanelTone(nextTone);
+      } catch {
+        setPanelTone("light");
+      }
+    };
+
+    const onError = () => {
+      if (!didCancel) {
+        setPanelTone("light");
+      }
+    };
+
+    sampleImage.addEventListener("load", onLoad);
+    sampleImage.addEventListener("error", onError);
+    sampleImage.src = activeImageSrc;
+
+    return () => {
+      didCancel = true;
+      sampleImage.removeEventListener("load", onLoad);
+      sampleImage.removeEventListener("error", onError);
+    };
+  }, [activeImageSrc]);
 
   return (
     <section className="relative h-full w-full overflow-hidden">
@@ -322,6 +407,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           onPlayToggle={() => {
             void handlePlayToggle();
           }}
+          onPlaybackSeek={handlePlaybackSeek}
           scenePrompt={scenePrompt}
           isGeneratingScene={isGeneratingImage}
           isDreaming={isAnalyzing || isPreparingAudio}
@@ -330,7 +416,11 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           canRandomScene={canRandomScene}
           canDream={canDream}
           canPlayAudio={canPlayAudio}
-          statusMessage={statusMessage}
+          canSeekAudio={canSeekAudio}
+          showPlaybackControls={showPlaybackControls}
+          playbackTimeSeconds={currentTimeSeconds}
+          playbackDurationSeconds={durationSeconds}
+          panelTone={panelTone}
           dreamError={
             localError ??
             imageGenerationError ??

@@ -95,19 +95,52 @@ function createSfxTrack(
 
 type SpatialAudioHook = {
   error: string | null;
+  currentTimeSeconds: number;
+  durationSeconds: number;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   stop: () => void;
+  seek: (timeSeconds: number) => void;
 };
 
 type WebkitWindow = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+function readDuration(element: HTMLAudioElement): number | null {
+  return Number.isFinite(element.duration) && element.duration > 0 ? element.duration : null;
+}
+
+function clampTimelineTime(timeSeconds: number, duration: number | null): number {
+  if (!Number.isFinite(timeSeconds) || timeSeconds < 0) {
+    return 0;
+  }
+
+  if (!duration) {
+    return timeSeconds;
+  }
+
+  return Math.min(timeSeconds, duration);
+}
+
+function seekElement(track: SpatialTrack, timelineTime: number): void {
+  const duration = readDuration(track.element);
+  const nextTime = duration
+    ? track.element.loop
+      ? timelineTime % duration
+      : Math.min(timelineTime, duration)
+    : timelineTime;
+
+  track.element.currentTime = nextTime;
+}
+
 export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): SpatialAudioHook {
   const [error, setError] = useState<string | null>(null);
+  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
+  const [durationSeconds, setDurationSeconds] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const graphRef = useRef<SpatialGraph | null>(null);
+  const detachNarratorListenersRef = useRef<(() => void) | null>(null);
 
   const ensureAudioContext = useCallback((): AudioContext => {
     if (audioContextRef.current) {
@@ -126,8 +159,13 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
   }, []);
 
   const teardownGraph = useCallback(() => {
+    detachNarratorListenersRef.current?.();
+    detachNarratorListenersRef.current = null;
+
     const graph = graphRef.current;
     if (!graph) {
+      setCurrentTimeSeconds(0);
+      setDurationSeconds(0);
       return;
     }
 
@@ -140,6 +178,8 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
     });
 
     graphRef.current = null;
+    setCurrentTimeSeconds(0);
+    setDurationSeconds(0);
   }, []);
 
   const setupGraph = useCallback(
@@ -166,6 +206,35 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
           gain: narratorGain
         },
         sfx: sfxTracks
+      };
+
+      const syncDuration = () => {
+        const duration = readDuration(narratorElement) ?? 0;
+        setDurationSeconds(duration);
+      };
+
+      const syncCurrentTime = () => {
+        setCurrentTimeSeconds(narratorElement.currentTime);
+      };
+
+      const handleEnded = () => {
+        const duration = readDuration(narratorElement);
+        setCurrentTimeSeconds(duration ?? narratorElement.currentTime);
+      };
+
+      narratorElement.addEventListener("loadedmetadata", syncDuration);
+      narratorElement.addEventListener("durationchange", syncDuration);
+      narratorElement.addEventListener("timeupdate", syncCurrentTime);
+      narratorElement.addEventListener("ended", handleEnded);
+
+      syncDuration();
+      syncCurrentTime();
+
+      detachNarratorListenersRef.current = () => {
+        narratorElement.removeEventListener("loadedmetadata", syncDuration);
+        narratorElement.removeEventListener("durationchange", syncDuration);
+        narratorElement.removeEventListener("timeupdate", syncCurrentTime);
+        narratorElement.removeEventListener("ended", handleEnded);
       };
     },
     [ensureAudioContext, teardownGraph]
@@ -230,6 +299,7 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
   const stop = useCallback(() => {
     const graph = graphRef.current;
     if (!graph) {
+      setCurrentTimeSeconds(0);
       return;
     }
 
@@ -239,6 +309,23 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
         element.currentTime = 0;
       }
     );
+
+    setCurrentTimeSeconds(0);
+  }, []);
+
+  const seek = useCallback((timeSeconds: number) => {
+    const graph = graphRef.current;
+    if (!graph) {
+      return;
+    }
+
+    const narratorDuration = readDuration(graph.narrator.element);
+    const timelineTime = clampTimelineTime(timeSeconds, narratorDuration);
+    seekElement(graph.narrator, timelineTime);
+    graph.sfx.forEach((track) => {
+      seekElement(track, timelineTime);
+    });
+    setCurrentTimeSeconds(timelineTime);
   }, []);
 
   useEffect(() => {
@@ -255,6 +342,8 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
 
   return {
     error,
+    currentTimeSeconds,
+    durationSeconds,
     play: async () => {
       try {
         await play();
@@ -265,6 +354,7 @@ export function useSpatialAudio(preparedAudio: DreamAudioAssets | null): Spatial
       }
     },
     pause,
-    stop
+    stop,
+    seek
   };
 }

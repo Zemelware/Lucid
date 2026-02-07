@@ -317,6 +317,8 @@ export async function POST(request: Request) {
     const parsed = parseModelJson(modelContent);
     const analysis = parseDreamSceneAnalysis(parsed);
 
+    console.log("SFX CUES:", JSON.stringify(analysis.sfx_cues, null, 2));
+
     return NextResponse.json(analysis);
   } catch (error) {
     const message =
