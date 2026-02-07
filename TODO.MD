@@ -27,9 +27,9 @@
 
 ## **Phase 4: The Spatial Engine (Web Audio)**
 
-* \[ \] **Hook:** Build useSpatialAudio.ts.  
-* \[ \] **HRTF Setup:** Configure the PannerNode to use HRTF (this is what makes it sound 3D).  
-* \[ \] **Mapping:** Map the Gemini x coordinate to the Panner positionX.  
+* \[x\] **Hook:** Build useSpatialAudio.ts.  
+* \[x\] **HRTF Setup:** Configure the PannerNode to use HRTF (this is what makes it sound 3D).  
+* \[x\] **Mapping:** Map the Gemini x coordinate to the Panner positionX.  
   \* x \< 0 \= Left Ear.  
   \* x \> 0 \= Right Ear.  
   \* z \< 0 \= Behind Head.
