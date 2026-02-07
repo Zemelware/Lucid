@@ -36,7 +36,11 @@
 
 ## **Phase 5: Randomizer & Polish**
 
-* \[ \] **Nano Banana:** Build /api/generate-image for the "Dream Button".  
-* \[ \] **Prompt:** Use prompts like "liminal space", "ethereal bedroom", "mystical forest", "soft lighting".  
-* \[ \] **Fades:** Implement the 5-second fade-in/out for audio transitions.  
-* \[ \] **Readme:** Explain the "Binaural Audio" feature and recommend headphones for the best experience.
+* \[x\] **Nano Banana:** Build /api/generate-image for the "Dream Button".  
+* \[x\] **Prompt:** Use prompts like "liminal space", "ethereal bedroom", "mystical forest", "soft lighting" as examples for Gemini (Gemini should be given the context of the application and figure out what image to create)
+* \[x\] **Readme:** Explain the "Binaural Audio" feature and recommend headphones for the best experience.
+
+## **Phase 6**
+
+* \[ \] **Playback controls:** Dedicated controls to play/pause audio (with appropriate icons) and scrub to different points in the audio
+* \[ \] **Collapsible control panel:** The controls panel with all the buttons should be collapsible to see more of the image

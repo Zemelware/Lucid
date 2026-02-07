@@ -2,7 +2,11 @@
   "name": "lucid",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
+    "predev": "npm run clean",
     "dev": "next dev",
     "clean": "rm -rf .next",
     "build": "npm run clean && next build",
