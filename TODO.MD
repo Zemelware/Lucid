@@ -2,11 +2,11 @@
 
 ## **Phase 1: Setup & Infrastructure**
 
-* \[ \] **Init:** Next.js 15, Tailwind, Lucide-React.  
-* \[ \] **Dependencies:** Install @openrouter/sdk, framer-motion, zustand.  
-* \[ \] **Env:** Set up .env.local with OPENROUTER\_API\_KEY and ELEVENLABS\_API\_KEY.  
-* \[ \] **Layout:** Build a full-screen image container.  
-* \[ \] **Animation:** Implement the "Breathing" CSS animation (slow scale up/down loop, 15s duration).
+* \[x\] **Init:** Next.js 15, Tailwind, Lucide-React.  
+* \[x\] **Dependencies:** Install @openrouter/sdk, framer-motion, zustand.  
+* \[x\] **Env:** Set up .env.local with OPENROUTER\_API\_KEY and ELEVENLABS\_API\_KEY.  
+* \[x\] **Layout:** Build a full-screen image container.  
+* \[x\] **Animation:** Implement the "Breathing" CSS animation (slow scale up/down loop, 15s duration).
 
 ## **Phase 2: The Dream Logic (OpenRouter SDK)**
 
