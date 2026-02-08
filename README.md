@@ -65,8 +65,9 @@ Lucid uses binaural-style spatial audio so sound feels physically placed around 
 - This creates directional depth, so sounds can pass in front of you, drift behind you, or travel across your left/right periphery.
 - Narration stays intimate and centered while the world audio shifts and evolves around you.
 
-For the strongest effect, use headphones in a quiet environment.
-
 ## Notes
 
 - Headphones are strongly recommended for directional depth.
+
+## Screenshots
+<img width="1498" height="814" alt="Screenshot 2026-02-08 at 12 45 47 PM" src="https://github.com/user-attachments/assets/1cf53a37-06f0-4b88-8776-0521cdb8fa4a" />
