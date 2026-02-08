@@ -75,15 +75,19 @@ export function DreamControls({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const createButtonClassName = [
     "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
-    canCreateScene
-      ? "border-violet-100/25 bg-violet-100/15 text-violet-50 hover:bg-violet-100/25"
-      : "cursor-not-allowed border-violet-100/10 bg-violet-100/10 text-violet-100/55",
+    isGeneratingScene
+      ? "dream-shimmer border-violet-200/30 bg-violet-100/20 text-violet-50"
+      : canCreateScene
+        ? "border-violet-100/25 bg-violet-100/15 text-violet-50 hover:bg-violet-100/25"
+        : "cursor-not-allowed border-violet-100/10 bg-violet-100/10 text-violet-100/55",
   ].join(" ");
   const dreamButtonClassName = [
     "inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition",
-    canDream
-      ? "border-white/15 bg-white/5 hover:bg-white/15"
-      : "cursor-not-allowed border-white/10 bg-white/5 text-white/55",
+    isDreaming
+      ? "dream-shimmer border-indigo-200/30 bg-indigo-100/20 text-indigo-50"
+      : canDream
+        ? "border-white/15 bg-white/5 hover:bg-white/15"
+        : "cursor-not-allowed border-white/10 bg-white/5 text-white/55",
   ].join(" ");
   const playButtonClassName = [
     "inline-flex size-8 items-center justify-center rounded-xl border transition",

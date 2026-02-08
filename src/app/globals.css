@@ -31,6 +31,39 @@ h4 {
   }
 }
 
+/* Shimmer effect for loading buttons */
+.dream-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.dream-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.12) 63%,
+    transparent 75%
+  );
+  background-size: 250% 100%;
+  animation: dream-shimmer-sweep 2.2s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@keyframes dream-shimmer-sweep {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
 .dream-breath {
   animation: dream-breath 15s ease-in-out infinite;
   transform-origin: center;

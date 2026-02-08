@@ -7,6 +7,8 @@ import { Brain, ChevronDown, Volume2 } from "lucide-react";
 import Image from "next/image";
 
 import { DreamControls } from "@/components/controls/dream-controls";
+import { DreamLoadingOverlay } from "@/components/dream-canvas/dream-loading-overlay";
+import { WelcomeHero } from "@/components/dream-canvas/welcome-hero";
 import { useDreamAudio } from "@/hooks/useDreamAudio";
 import { useDreamImage } from "@/hooks/useDreamImage";
 import { useSpatialAudio } from "@/hooks/useSpatialAudio";
@@ -376,7 +378,7 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           regionHeight,
         );
         const luminance = calculateAverageLuminance(regionImageData.data);
-        const nextTone = luminance > 0.56 ? "dark" : "light";
+        const nextTone = luminance > 0.42 ? "dark" : "light";
         setPanelTone(nextTone);
       } catch {
         setPanelTone("light");
@@ -437,7 +439,9 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
             aria-expanded={isVolumePanelOpen}
             aria-controls="sfx-mix-panel"
           >
-            <span className={`flex items-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase ${sfxPanelLabelClassName}`}>
+            <span
+              className={`flex items-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase ${sfxPanelLabelClassName}`}
+            >
               <Volume2 className="size-3.5" aria-hidden="true" />
               SFX Mix
             </span>
@@ -453,12 +457,16 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           <div
             id="sfx-mix-panel"
             className={`overflow-hidden transition-all duration-200 ${
-              isVolumePanelOpen ? `mt-2 max-h-[24rem] border-t pt-3 ${sfxPanelDividerClassName}` : "max-h-0"
+              isVolumePanelOpen
+                ? `mt-2 max-h-[24rem] border-t pt-3 ${sfxPanelDividerClassName}`
+                : "max-h-0"
             }`}
           >
             <div className="space-y-3">
               <div className="grid grid-cols-[minmax(0,6rem)_1fr] items-center gap-3">
-                <span className={`truncate text-[11px] font-semibold tracking-[0.14em] uppercase ${sfxPanelLabelClassName}`}>
+                <span
+                  className={`truncate text-[11px] font-semibold tracking-[0.14em] uppercase ${sfxPanelLabelClassName}`}
+                >
                   Master
                 </span>
                 <input
@@ -537,8 +545,21 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           <div className="ambient-orb ambient-orb-b" />
           <div className="ambient-orb ambient-orb-c" />
           <div className="ambient-orb ambient-orb-d" />
+          <WelcomeHero />
         </div>
       )}
+
+      {/* Loading overlay */}
+      <DreamLoadingOverlay
+        isVisible={isAnalyzing || isPreparingAudio || isGeneratingImage}
+        message={
+          isGeneratingImage
+            ? "Conjuring a scene…"
+            : isAnalyzing
+              ? "Reading the dream…"
+              : "Weaving the soundscape…"
+        }
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
