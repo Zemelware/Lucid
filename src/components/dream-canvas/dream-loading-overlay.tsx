@@ -22,7 +22,9 @@ export function DreamLoadingOverlay({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center gap-6"
+          className="absolute inset-0 z-30 flex cursor-default flex-col items-center justify-center gap-6 pointer-events-auto"
+          role="status"
+          aria-live="polite"
         >
           {/* Backdrop dim */}
           <div className="absolute inset-0 bg-twilight-950/70 backdrop-blur-sm" />
