@@ -16,7 +16,7 @@ File: `src/components/dream-canvas/dream-canvas.tsx`
 - State resets:
   - Changing the scene clears analysis and prepared audio, stops playback, and clears errors.
 - "Dream" action:
-  - Calls `useGemini().analyzeScene(...)`
+  - Calls `useSceneAnalysis().analyzeScene(...)`
   - Then calls `useDreamAudio().prepareAudio(analysis)`
 - Playback:
   - Delegates to `useSpatialAudio(preparedAudio)`
@@ -43,4 +43,3 @@ Shown whenever any of these are active:
 File: `src/components/dream-canvas/welcome-hero.tsx`
 
 Rendered behind the controls when no image is selected.
-

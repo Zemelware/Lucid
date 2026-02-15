@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 
+import { readApiErrorMessage } from "@/lib/api-client";
 import type { DreamSceneAnalysis } from "@/types/dream";
 
 type AnalyzeScenePayload =
@@ -14,24 +15,9 @@ type AnalyzeScenePayload =
       imageUrl?: never;
     };
 
-type ApiErrorBody = {
-  error?: string;
-};
+const ANALYZE_ERROR_FALLBACK = "Request failed.";
 
-function getErrorMessage(value: unknown): string {
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "error" in value &&
-    typeof (value as ApiErrorBody).error === "string"
-  ) {
-    return (value as ApiErrorBody).error ?? "Request failed.";
-  }
-
-  return "Request failed.";
-}
-
-export function useGemini() {
+export function useSceneAnalysis() {
   const [analysis, setAnalysis] = useState<DreamSceneAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +38,7 @@ export function useGemini() {
       const responseBody = (await response.json()) as unknown;
 
       if (!response.ok) {
-        const message = getErrorMessage(responseBody);
+        const message = readApiErrorMessage(responseBody, ANALYZE_ERROR_FALLBACK);
         setError(message);
         throw new Error(message);
       }

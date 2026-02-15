@@ -20,7 +20,7 @@ flowchart LR
 ## Core Subsystems And Entry Points
 
 - UI orchestration: `src/components/dream-canvas/dream-canvas.tsx`
-- Scene analysis client: `src/hooks/useGemini.ts`
+- Scene analysis client: `src/hooks/useSceneAnalysis.ts`
 - Audio asset generation client: `src/hooks/useDreamAudio.ts`
 - Spatial audio engine: `src/hooks/useSpatialAudio.ts`
 - Image generation client: `src/hooks/useDreamImage.ts`

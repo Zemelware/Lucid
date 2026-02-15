@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getOpenRouterClient } from "@/lib/openrouter";
+import { isRecord, readOptionalBoolean, readOptionalString } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -36,29 +37,13 @@ type GenerateImageResponseBody = {
   imageDataUrl: string | null;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 function readOptionalPrompt(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  return readOptionalString(value);
 }
 
-function readOptionalBoolean(value: unknown, field: string): boolean {
-  if (typeof value === "undefined") {
-    return false;
-  }
-
-  if (typeof value !== "boolean") {
-    throw new Error(`${field} must be a boolean.`);
-  }
-
-  return value;
+function readBooleanFlag(value: unknown, field: string): boolean {
+  const parsed = readOptionalBoolean(value, field);
+  return parsed ?? false;
 }
 
 function formatSeedExamplesForPrompt(): string {
@@ -172,8 +157,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const random = readOptionalBoolean(body.random, "random");
-    const isHighRes = readOptionalBoolean(body.isHighRes, "isHighRes");
+    const random = readBooleanFlag(body.random, "random");
+    const isHighRes = readBooleanFlag(body.isHighRes, "isHighRes");
     const prompt = readOptionalPrompt(body.prompt);
 
     if (!random && !prompt) {

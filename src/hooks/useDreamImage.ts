@@ -2,6 +2,9 @@
 
 import { useCallback, useState } from "react";
 
+import { readApiErrorMessage } from "@/lib/api-client";
+import { isRecord, readOptionalString } from "@/lib/validation";
+
 type GenerateImageRequestBody = {
   prompt?: string;
   random?: boolean;
@@ -12,27 +15,7 @@ export type GeneratedDreamImage = {
   imageUrl: string | null;
   imageDataUrl: string | null;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function getErrorMessage(value: unknown): string {
-  if (isRecord(value) && typeof value.error === "string" && value.error.trim().length > 0) {
-    return value.error;
-  }
-
-  return "Scene generation failed.";
-}
-
-function readOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
+const GENERATE_SCENE_ERROR_FALLBACK = "Scene generation failed.";
 
 function parseGeneratedDreamImage(value: unknown): GeneratedDreamImage {
   if (!isRecord(value)) {
@@ -70,13 +53,13 @@ export function useDreamImage() {
           body: JSON.stringify(body),
         });
 
-        const responseBody = (await response.json()) as unknown;
+      const responseBody = (await response.json()) as unknown;
 
-        if (!response.ok) {
-          const message = getErrorMessage(responseBody);
-          setError(message);
-          throw new Error(message);
-        }
+      if (!response.ok) {
+        const message = readApiErrorMessage(responseBody, GENERATE_SCENE_ERROR_FALLBACK);
+        setError(message);
+        throw new Error(message);
+      }
 
         return parseGeneratedDreamImage(responseBody);
       } finally {

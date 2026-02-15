@@ -2,6 +2,7 @@ import { ElevenLabsError } from "@elevenlabs/elevenlabs-js";
 import { NextResponse } from "next/server";
 
 import { getElevenLabsClient } from "@/lib/elevenlabs";
+import { isRecord, readNonEmptyString } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -12,18 +13,6 @@ const OUTPUT_FORMAT = "mp3_44100_128";
 type GenerateVoiceRequestBody = {
   text?: unknown;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function readNonEmptyString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${field} must be a non-empty string.`);
-  }
-
-  return value.trim();
-}
 
 const NARRATOR_VOICE_SETTINGS = {
   stability: 0.68,

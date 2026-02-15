@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getOpenRouterClient } from "@/lib/openrouter";
+import {
+  clamp,
+  isRecord,
+  readBoolean,
+  readNonEmptyString,
+  readNumber,
+  readOptionalNumber,
+} from "@/lib/validation";
 import type { DreamSceneAnalysis, DreamTimeline, Position3D, TimelineSfxCue } from "@/types/dream";
 
 export const runtime = "nodejs";
@@ -154,46 +162,6 @@ type AnalyzeSceneRequestBody = {
   imageUrl?: unknown;
   imageDataUrl?: unknown;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function readNonEmptyString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${field} must be a non-empty string.`);
-  }
-
-  return value.trim();
-}
-
-function readBoolean(value: unknown, field: string): boolean {
-  if (typeof value !== "boolean") {
-    throw new Error(`${field} must be a boolean.`);
-  }
-
-  return value;
-}
-
-function readNumber(value: unknown, field: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${field} must be a finite number.`);
-  }
-
-  return value;
-}
-
-function readOptionalNumber(value: unknown, field: string): number | undefined {
-  if (typeof value === "undefined" || value === null) {
-    return undefined;
-  }
-
-  return readNumber(value, field);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 function readImageInput(body: AnalyzeSceneRequestBody): string {
   if (typeof body.imageDataUrl === "string" && body.imageDataUrl.startsWith("data:image/")) {

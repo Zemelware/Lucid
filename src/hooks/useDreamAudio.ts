@@ -2,25 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { readApiErrorMessage } from "@/lib/api-client";
 import { useAudioStore } from "@/store/use-audio-store";
 import type { DreamAudioAssets, DreamSceneAnalysis } from "@/types/dream";
 
-type ApiErrorBody = {
-  error?: string;
-};
-
-function getErrorMessage(value: unknown): string {
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "error" in value &&
-    typeof (value as ApiErrorBody).error === "string"
-  ) {
-    return (value as ApiErrorBody).error ?? "Audio request failed.";
-  }
-
-  return "Audio request failed.";
-}
+const AUDIO_ERROR_FALLBACK = "Audio request failed.";
 
 async function getAudioBlob(
   endpoint: string,
@@ -43,7 +29,7 @@ async function getAudioBlob(
       const contentType = response.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
         const body = (await response.json()) as unknown;
-        message = getErrorMessage(body);
+        message = readApiErrorMessage(body, AUDIO_ERROR_FALLBACK);
       } else {
         const bodyText = (await response.text()).trim();
         if (bodyText.length > 0) {

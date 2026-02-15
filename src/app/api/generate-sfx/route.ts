@@ -2,6 +2,13 @@ import { ElevenLabsError } from "@elevenlabs/elevenlabs-js";
 import { NextResponse } from "next/server";
 
 import { getElevenLabsClient } from "@/lib/elevenlabs";
+import {
+  clamp,
+  isRecord,
+  readNonEmptyString,
+  readOptionalBoolean,
+  readOptionalNumber,
+} from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -14,46 +21,6 @@ type GenerateSfxRequestBody = {
   durationSeconds?: unknown;
   promptInfluence?: unknown;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function readNonEmptyString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${field} must be a non-empty string.`);
-  }
-
-  return value.trim();
-}
-
-function readOptionalBoolean(value: unknown, field: string): boolean | undefined {
-  if (typeof value === "undefined") {
-    return undefined;
-  }
-
-  if (typeof value !== "boolean") {
-    throw new Error(`${field} must be a boolean.`);
-  }
-
-  return value;
-}
-
-function readOptionalNumber(value: unknown, field: string): number | undefined {
-  if (typeof value === "undefined") {
-    return undefined;
-  }
-
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${field} must be a finite number.`);
-  }
-
-  return value;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 export async function POST(request: Request) {
   let body: GenerateSfxRequestBody;
