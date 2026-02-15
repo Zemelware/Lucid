@@ -45,7 +45,7 @@ Notes:
 ## Documentation
 - All high-level documentation lives in the `docs/` folder.
 - When you introduce a new subsystem, feature, or non-trivial script, create or update a doc in `docs/`.
-- When you modify behavior, APIs, or data models, update the relevant doc in the same change.
+- When you modify behavior, APIs, or data models, you **must** check if there are any docs relevant to the change and update the relevant doc in the same change.
 - Use this documentation as context before making any significant changes.
 - When adding/updating documentation, ensure that you provide the right amount of context such that an agent could easily add new changes after reading the doc.
 
