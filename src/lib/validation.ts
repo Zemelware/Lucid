@@ -1,5 +1,5 @@
 export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -54,4 +54,3 @@ export function readOptionalNumber(value: unknown, field: string): number | unde
 
   return readNumber(value, field);
 }
-

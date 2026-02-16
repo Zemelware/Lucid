@@ -37,10 +37,22 @@ Conventions:
 - Start production server: `npm run start` (requires a prior build).
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck` (includes `next typegen`)
+- Tests: `npm run test` (Vitest)
+- Test watch mode: `npm run test:watch`
+- Test coverage report: `npm run test:coverage`
 - Clean build artifacts: `npm run clean` (removes `.next` and `.next-build`)
 
 Notes:
-- No dedicated unit/integration test runner is configured yet; use `lint` + `typecheck` as the baseline verification.
+- For significant code changes, run the relevant test suite(s) before finishing (`npm run test` at minimum, plus lint/typecheck when applicable).
+- When adding or changing features, add new tests or update existing tests in the same change so behavior is verified and regressions are caught.
+- Tests are split into:
+  - Unit tests: `*.test.ts` / `*.test.tsx` (`unit` Vitest project, `jsdom`)
+  - Integration tests: `*.int.test.ts` / `*.int.test.tsx` (`integration` Vitest project, `node`; call `GET`/`POST` route handlers directly with `Request`)
+- Use MSW in integration tests to mock external HTTP (OpenRouter/ElevenLabs) so tests are deterministic and do not require real keys.
+- Next’s `"server-only"` import is stubbed in Vitest via `vitest.config.ts` aliasing to `src/test/stubs/server-only.ts`.
+- React hook tests use `renderHook` from Testing Library and rely on `src/test/setup.ts` setting `IS_REACT_ACT_ENVIRONMENT = true`.
+- Client audio tests should mock browser APIs (`Audio`, `AudioContext`, `PannerNode`, `URL.createObjectURL`) to keep tests deterministic in `jsdom`.
+- Current baseline coverage includes API routes (`analyze-scene`, `generate-image`, `generate-sfx`, `generate-voice`), hooks, stores, and key DreamCanvas controls/orchestration behavior.
 
 ## Documentation
 - All high-level documentation lives in the `docs/` folder.

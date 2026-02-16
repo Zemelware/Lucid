@@ -11,7 +11,11 @@
     "build": "npm run clean && npx -y node@22 ./node_modules/next/dist/bin/next build",
     "start": "npx -y node@22 ./node_modules/next/dist/bin/next start",
     "lint": "next lint",
-    "typecheck": "npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false"
+    "typecheck": "npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.34.0",
@@ -27,12 +31,23 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.0.0",
     "glob-parent": "^6.0.2",
+    "jsdom": "^26.1.0",
+    "msw": "^2.7.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vite-tsconfig-paths": "^5.0.1",
+    "vitest": "^3.2.4"
   }
 }

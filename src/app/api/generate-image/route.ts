@@ -37,6 +37,10 @@ type GenerateImageResponseBody = {
   imageDataUrl: string | null;
 };
 
+type OpenRouterChatSendRequest = Parameters<
+  ReturnType<typeof getOpenRouterClient>["chat"]["send"]
+>[0];
+
 function readOptionalPrompt(value: unknown): string | null {
   return readOptionalString(value);
 }
@@ -171,7 +175,7 @@ export async function POST(request: Request) {
     const seedExamples = formatSeedExamplesForPrompt();
     const client = getOpenRouterClient();
 
-    const completion = await client.chat.send({
+    const completion = (await client.chat.send({
       chatGenerationParams: {
         stream: false,
         model: isHighRes ? MODEL_NAME_HIGH_RES : MODEL_NAME_DEFAULT,
@@ -203,10 +207,12 @@ Do not include any text, logos, watermarks, borders, or split layouts.
 `.trim(),
           },
         ],
-      } as any,
-    });
+      },
+    } as OpenRouterChatSendRequest)) as {
+      choices?: Array<{ message?: unknown }>;
+    };
 
-    const image = readImageFromMessage(completion.choices[0]?.message);
+    const image = readImageFromMessage(completion.choices?.[0]?.message);
     const responseBody: GenerateImageResponseBody = {
       imageUrl: image.imageUrl,
       imageDataUrl: image.imageDataUrl,
