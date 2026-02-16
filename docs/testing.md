@@ -16,7 +16,7 @@ This repo uses **Vitest** for both unit and integration tests.
 
 - Unit tests: `*.test.ts` / `*.test.tsx` (`unit` Vitest project, `jsdom` environment)
 - Integration tests: `*.int.test.ts` / `*.int.test.tsx` (`integration` Vitest project, `node` environment)
-- Browser E2E tests: `e2e/**/*.spec.ts` (Playwright, Chromium project)
+- Browser E2E tests: `e2e/**/*.spec.ts` (Playwright, Chrome desktop + mobile projects)
 
 The environments are selected via `test.projects` in `vitest.config.ts`.
 
@@ -29,3 +29,4 @@ The environments are selected via `test.projects` in `vitest.config.ts`.
 - Browser-audio hooks (`useDreamAudio`, `useSpatialAudio`) should mock `Audio`, `AudioContext`, `PannerNode`, and `URL.createObjectURL` so behavior is deterministic in test runs.
 - E2E tests must mock `/api/generate-image`, `/api/analyze-scene`, `/api/generate-voice`, and `/api/generate-sfx` route responses to avoid real OpenRouter/ElevenLabs usage and API credit spend.
 - `playwright.config.ts` is configured for the locally installed Chrome channel (`channel: "chrome"`), so no Playwright browser download is required for local runs.
+- Current E2E coverage includes: prompted scene creation, random scene creation, upload flow, high-res toggle payloads, dream preparation success/failure paths, playback/SFX mix controls, retry recovery, and keyboard-driven interaction checks.

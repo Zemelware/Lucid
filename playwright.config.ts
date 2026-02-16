@@ -29,6 +29,14 @@ export default defineConfig({
         channel: "chrome",
       },
     },
+    {
+      name: "iphone-mobile",
+      use: {
+        ...devices["iPhone 15 Pro"],
+        browserName: "chromium",
+        channel: "chrome",
+      },
+    },
   ],
   webServer: {
     command: `node ./node_modules/next/dist/bin/next dev --port ${PORT} --hostname 127.0.0.1`,

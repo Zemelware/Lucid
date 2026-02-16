@@ -53,6 +53,7 @@ Notes:
 - Use MSW in integration tests to mock external HTTP (OpenRouter/ElevenLabs) so tests are deterministic and do not require real keys.
 - E2E tests should mock `/api/*` responses and block provider domains, so browser-flow tests never spend real API credits.
 - Playwright E2E runs against local Chrome (`playwright.config.ts` uses `channel: "chrome"`).
+- E2E projects run in both desktop and mobile Chrome profiles; keep critical user flows green in both.
 - Next’s `"server-only"` import is stubbed in Vitest via `vitest.config.ts` aliasing to `src/test/stubs/server-only.ts`.
 - React hook tests use `renderHook` from Testing Library and rely on `src/test/setup.ts` setting `IS_REACT_ACT_ENVIRONMENT = true`.
 - Client audio tests should mock browser APIs (`Audio`, `AudioContext`, `PannerNode`, `URL.createObjectURL`) to keep tests deterministic in `jsdom`.
