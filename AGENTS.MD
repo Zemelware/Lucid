@@ -40,6 +40,7 @@ Conventions:
 - Tests: `npm run test` (Vitest)
 - Test watch mode: `npm run test:watch`
 - Test coverage report: `npm run test:coverage`
+- Browser E2E tests: `npm run test:e2e` (Playwright)
 - Clean build artifacts: `npm run clean` (removes `.next` and `.next-build`)
 
 Notes:
@@ -48,7 +49,10 @@ Notes:
 - Tests are split into:
   - Unit tests: `*.test.ts` / `*.test.tsx` (`unit` Vitest project, `jsdom`)
   - Integration tests: `*.int.test.ts` / `*.int.test.tsx` (`integration` Vitest project, `node`; call `GET`/`POST` route handlers directly with `Request`)
+- Browser E2E tests: `e2e/**/*.spec.ts` (Playwright).
 - Use MSW in integration tests to mock external HTTP (OpenRouter/ElevenLabs) so tests are deterministic and do not require real keys.
+- E2E tests should mock `/api/*` responses and block provider domains, so browser-flow tests never spend real API credits.
+- Playwright E2E runs against local Chrome (`playwright.config.ts` uses `channel: "chrome"`).
 - Next’s `"server-only"` import is stubbed in Vitest via `vitest.config.ts` aliasing to `src/test/stubs/server-only.ts`.
 - React hook tests use `renderHook` from Testing Library and rely on `src/test/setup.ts` setting `IS_REACT_ACT_ENVIRONMENT = true`.
 - Client audio tests should mock browser APIs (`Audio`, `AudioContext`, `PannerNode`, `URL.createObjectURL`) to keep tests deterministic in `jsdom`.
