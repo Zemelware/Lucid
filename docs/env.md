@@ -12,6 +12,7 @@ Configured via `.env.local` (not committed):
 - `NEXT_PUBLIC_APP_URL`
   - Used as OpenRouter `httpReferer` in `src/lib/openrouter.ts`.
   - Defaults to `http://localhost:3000` if unset.
+  - Its origin is also included in API route CORS allowlist (`src/lib/cors.ts`).
 - `NEXT_PUBLIC_API_BASE_URL`
   - Used by client hooks through `src/lib/runtime-api.ts` to build API URLs.
   - When unset, requests use same-origin relative paths (for regular Next web deploys).

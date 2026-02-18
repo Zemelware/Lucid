@@ -2,6 +2,22 @@
 
 All routes live under `src/app/api/*/route.ts` and run in the Node.js runtime.
 
+## CORS
+
+All API routes support:
+
+- `OPTIONS` preflight requests (`204 No Content`)
+- CORS response headers for approved origins
+
+Allowed origins include:
+
+- `capacitor://localhost`
+- `http://localhost`
+- `https://localhost`
+- `http://127.0.0.1`
+- `https://127.0.0.1`
+- `NEXT_PUBLIC_APP_URL` origin (if configured)
+
 ## POST /api/analyze-scene
 
 File: `src/app/api/analyze-scene/route.ts`
@@ -123,4 +139,3 @@ Behavior notes:
   - `data:image/*;base64,...`
   - `http(s)://...`
 - Uses different models based on `isHighRes`.
-

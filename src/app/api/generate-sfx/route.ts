@@ -1,6 +1,7 @@
 import { ElevenLabsError } from "@elevenlabs/elevenlabs-js";
 import { NextResponse } from "next/server";
 
+import { createOptionsResponse, withCors } from "@/lib/cors";
 import { getElevenLabsClient } from "@/lib/elevenlabs";
 import {
   clamp,
@@ -11,6 +12,10 @@ import {
 } from "@/lib/validation";
 
 export const runtime = "nodejs";
+
+export function OPTIONS(request: Request) {
+  return createOptionsResponse(request);
+}
 
 const SFX_MODEL_ID = "eleven_text_to_sound_v2";
 const OUTPUT_FORMAT = "mp3_44100_128";
@@ -28,15 +33,15 @@ export async function POST(request: Request) {
   try {
     const requestBody = (await request.json()) as unknown;
     if (!isRecord(requestBody)) {
-      return NextResponse.json(
-        { error: "Request body must be a JSON object." },
-        { status: 400 }
+      return withCors(
+        request,
+        NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 })
       );
     }
 
     body = requestBody as GenerateSfxRequestBody;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: "Invalid JSON body." }, { status: 400 }));
   }
 
   try {
@@ -57,24 +62,30 @@ export async function POST(request: Request) {
         typeof promptInfluence === "number" ? clamp(promptInfluence, 0, 1) : undefined
     });
 
-    return new Response(audioStream, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "no-store"
-      }
-    });
+    return withCors(
+      request,
+      new Response(audioStream, {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "no-store"
+        }
+      }),
+    );
   } catch (error) {
     if (error instanceof ElevenLabsError) {
-      return NextResponse.json(
-        { error: error.message || "ElevenLabs sound-effect generation failed." },
-        { status: error.statusCode ?? 502 }
+      return withCors(
+        request,
+        NextResponse.json(
+          { error: error.message || "ElevenLabs sound-effect generation failed." },
+          { status: error.statusCode ?? 502 }
+        )
       );
     }
 
     const message =
       error instanceof Error ? error.message : "Unexpected sound-effect failure.";
     const status = message.includes("ELEVENLABS_API_KEY") ? 500 : 502;
-    return NextResponse.json({ error: message }, { status });
+    return withCors(request, NextResponse.json({ error: message }, { status }));
   }
 }

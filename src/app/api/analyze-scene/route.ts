@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createOptionsResponse, withCors } from "@/lib/cors";
 import { getOpenRouterClient } from "@/lib/openrouter";
 import {
   clamp,
@@ -12,6 +13,10 @@ import {
 import type { DreamSceneAnalysis, DreamTimeline, Position3D, TimelineSfxCue } from "@/types/dream";
 
 export const runtime = "nodejs";
+
+export function OPTIONS(request: Request) {
+  return createOptionsResponse(request);
+}
 
 const MODEL_NAME = "google/gemini-3-flash-preview";
 
@@ -372,12 +377,15 @@ export async function POST(request: Request) {
   try {
     const requestBody = (await request.json()) as unknown;
     if (!isRecord(requestBody)) {
-      return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
+      return withCors(
+        request,
+        NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 })
+      );
     }
 
     body = requestBody as AnalyzeSceneRequestBody;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: "Invalid JSON body." }, { status: 400 }));
   }
 
   try {
@@ -409,11 +417,11 @@ export async function POST(request: Request) {
     }
 
     console.log("[Lucid] Gemini timeline analysis:", JSON.stringify(analysis, null, 2));
-    return NextResponse.json(analysis);
+    return withCors(request, NextResponse.json(analysis));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected analyze-scene failure.";
     const status = message.includes("OPENROUTER_API_KEY") ? 500 : 502;
 
-    return NextResponse.json({ error: message }, { status });
+    return withCors(request, NextResponse.json({ error: message }, { status }));
   }
 }

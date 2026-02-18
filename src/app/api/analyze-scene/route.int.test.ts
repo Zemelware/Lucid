@@ -12,7 +12,7 @@ vi.mock("@/lib/openrouter", () => ({
   }),
 }));
 
-import { POST } from "@/app/api/analyze-scene/route";
+import { OPTIONS, POST } from "@/app/api/analyze-scene/route";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -161,5 +161,15 @@ describe("POST /api/analyze-scene", () => {
     expect(sendMock).toHaveBeenCalledTimes(3);
     expect(warnSpy).toHaveBeenCalledTimes(3);
   });
-});
 
+  it("returns CORS headers for preflight", async () => {
+    const req = new Request("http://localhost/api/analyze-scene", {
+      method: "OPTIONS",
+      headers: { origin: "capacitor://localhost" },
+    });
+
+    const res = OPTIONS(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+});

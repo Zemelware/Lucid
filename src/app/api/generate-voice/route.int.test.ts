@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { POST } from "@/app/api/generate-voice/route";
+import { OPTIONS, POST } from "@/app/api/generate-voice/route";
 
 describe("POST /api/generate-voice (integration)", () => {
   it("returns 400 on invalid JSON", async () => {
@@ -30,5 +30,15 @@ describe("POST /api/generate-voice (integration)", () => {
       error: expect.stringMatching(/ELEVENLABS_API_KEY/i),
     });
   });
-});
 
+  it("returns CORS headers for preflight", async () => {
+    const req = new Request("http://localhost/api/generate-voice", {
+      method: "OPTIONS",
+      headers: { origin: "capacitor://localhost" },
+    });
+
+    const res = OPTIONS(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+});

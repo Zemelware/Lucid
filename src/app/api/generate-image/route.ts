@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { createOptionsResponse, withCors } from "@/lib/cors";
 import { getOpenRouterClient } from "@/lib/openrouter";
 import { isRecord, readOptionalBoolean, readOptionalString } from "@/lib/validation";
 
 export const runtime = "nodejs";
+
+export function OPTIONS(request: Request) {
+  return createOptionsResponse(request);
+}
 
 const MODEL_NAME_DEFAULT = "google/gemini-2.5-flash-image";
 const MODEL_NAME_HIGH_RES = "google/gemini-3-pro-image-preview";
@@ -166,9 +171,12 @@ export async function POST(request: Request) {
     const prompt = readOptionalPrompt(body.prompt);
 
     if (!random && !prompt) {
-      return NextResponse.json(
-        { error: "prompt is required unless random is true." },
-        { status: 400 },
+      return withCors(
+        request,
+        NextResponse.json(
+          { error: "prompt is required unless random is true." },
+          { status: 400 },
+        ),
       );
     }
 
@@ -218,10 +226,10 @@ Do not include any text, logos, watermarks, borders, or split layouts.
       imageDataUrl: image.imageDataUrl,
     };
 
-    return NextResponse.json(responseBody);
+    return withCors(request, NextResponse.json(responseBody));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected image generation failure.";
     const status = message.includes("OPENROUTER_API_KEY") ? 500 : 502;
-    return NextResponse.json({ error: message }, { status });
+    return withCors(request, NextResponse.json({ error: message }, { status }));
   }
 }

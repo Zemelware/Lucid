@@ -12,7 +12,7 @@ vi.mock("@/lib/elevenlabs", () => ({
   }),
 }));
 
-import { POST } from "@/app/api/generate-sfx/route";
+import { OPTIONS, POST } from "@/app/api/generate-sfx/route";
 
 describe("POST /api/generate-sfx", () => {
   it("returns 400 for invalid JSON", async () => {
@@ -88,5 +88,15 @@ describe("POST /api/generate-sfx", () => {
       error: expect.stringMatching(/ELEVENLABS_API_KEY/i),
     });
   });
-});
 
+  it("returns CORS headers for preflight", async () => {
+    const req = new Request("http://localhost/api/generate-sfx", {
+      method: "OPTIONS",
+      headers: { origin: "capacitor://localhost" },
+    });
+
+    const res = OPTIONS(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+});

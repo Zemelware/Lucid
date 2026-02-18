@@ -12,7 +12,7 @@ vi.mock("@/lib/openrouter", () => ({
   }),
 }));
 
-import { POST } from "@/app/api/generate-image/route";
+import { OPTIONS, POST } from "@/app/api/generate-image/route";
 
 describe("POST /api/generate-image", () => {
   it("returns 400 when prompt is missing and random is false", async () => {
@@ -140,5 +140,15 @@ describe("POST /api/generate-image", () => {
       error: expect.stringMatching(/OPENROUTER_API_KEY/i),
     });
   });
-});
 
+  it("returns CORS headers for preflight", async () => {
+    const req = new Request("http://localhost/api/generate-image", {
+      method: "OPTIONS",
+      headers: { origin: "capacitor://localhost" },
+    });
+
+    const res = OPTIONS(req);
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+});

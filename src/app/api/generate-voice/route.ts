@@ -1,10 +1,15 @@
 import { ElevenLabsError } from "@elevenlabs/elevenlabs-js";
 import { NextResponse } from "next/server";
 
+import { createOptionsResponse, withCors } from "@/lib/cors";
 import { getElevenLabsClient } from "@/lib/elevenlabs";
 import { isRecord, readNonEmptyString } from "@/lib/validation";
 
 export const runtime = "nodejs";
+
+export function OPTIONS(request: Request) {
+  return createOptionsResponse(request);
+}
 
 const NARRATOR_VOICE_ID = "1ykC5GeLM4dP82qkyo91";
 const NARRATOR_MODEL_ID = "eleven_multilingual_v2";
@@ -28,15 +33,15 @@ export async function POST(request: Request) {
   try {
     const requestBody = (await request.json()) as unknown;
     if (!isRecord(requestBody)) {
-      return NextResponse.json(
-        { error: "Request body must be a JSON object." },
-        { status: 400 }
+      return withCors(
+        request,
+        NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 }),
       );
     }
 
     body = requestBody as GenerateVoiceRequestBody;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: "Invalid JSON body." }, { status: 400 }));
   }
 
   try {
@@ -51,24 +56,30 @@ export async function POST(request: Request) {
       voiceSettings: NARRATOR_VOICE_SETTINGS
     });
 
-    return new Response(audioStream, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "no-store"
-      }
-    });
+    return withCors(
+      request,
+      new Response(audioStream, {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "no-store"
+        }
+      }),
+    );
   } catch (error) {
     if (error instanceof ElevenLabsError) {
-      return NextResponse.json(
-        { error: error.message || "ElevenLabs voice generation failed." },
-        { status: error.statusCode ?? 502 }
+      return withCors(
+        request,
+        NextResponse.json(
+          { error: error.message || "ElevenLabs voice generation failed." },
+          { status: error.statusCode ?? 502 }
+        ),
       );
     }
 
     const message =
       error instanceof Error ? error.message : "Unexpected voice generation failure.";
     const status = message.includes("ELEVENLABS_API_KEY") ? 500 : 502;
-    return NextResponse.json({ error: message }, { status });
+    return withCors(request, NextResponse.json({ error: message }, { status }));
   }
 }
