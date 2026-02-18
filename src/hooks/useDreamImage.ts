@@ -63,6 +63,13 @@ export function useDreamImage() {
         }
 
         return parseGeneratedDreamImage(responseBody);
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : GENERATE_SCENE_ERROR_FALLBACK;
+        setError(message);
+        throw error instanceof Error ? error : new Error(message);
       } finally {
         setIsGeneratingImage(false);
       }

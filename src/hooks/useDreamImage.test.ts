@@ -115,4 +115,26 @@ describe("useDreamImage", () => {
 
     expect(result.current.error).toBeNull();
   });
+
+  it("sets error when fetch rejects before a response exists", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useDreamImage());
+
+    let thrownMessage = "";
+    await act(async () => {
+      try {
+        await result.current.generateImage({ random: true });
+      } catch (error) {
+        thrownMessage = error instanceof Error ? error.message : String(error);
+      }
+    });
+
+    await waitFor(() => {
+      expect(thrownMessage).toMatch(/failed to fetch/i);
+      expect(result.current.error).toBe("Failed to fetch");
+      expect(result.current.isGeneratingImage).toBe(false);
+    });
+  });
 });
