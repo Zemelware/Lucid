@@ -10,6 +10,14 @@
     "clean": "rm -rf .next .next-build",
     "build": "npm run clean && npx -y node@22 ./node_modules/next/dist/bin/next build",
     "start": "npx -y node@22 ./node_modules/next/dist/bin/next start",
+    "mobile:web:build": "npm run clean && NEXT_EXPORT_MODE=1 npx -y node@22 ./node_modules/next/dist/bin/next build",
+    "mobile:cap:sync": "npm run mobile:web:build && npx cap sync",
+    "mobile:cap:sync:ios": "npm run mobile:web:build && npx cap sync ios",
+    "mobile:cap:sync:android": "npm run mobile:web:build && npx cap sync android",
+    "mobile:ios:add": "npx cap add ios",
+    "mobile:android:add": "npx cap add android",
+    "mobile:ios": "npm run mobile:cap:sync:ios && npx cap open ios",
+    "mobile:android": "npm run mobile:cap:sync:android && npx cap open android",
     "lint": "next lint",
     "typecheck": "npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false",
     "test": "vitest run",
@@ -21,6 +29,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@capacitor/core": "7.4.3",
     "@elevenlabs/elevenlabs-js": "^2.34.0",
     "@openrouter/sdk": "latest",
     "framer-motion": "latest",
@@ -31,6 +40,9 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@capacitor/android": "7.4.3",
+    "@capacitor/cli": "7.4.3",
+    "@capacitor/ios": "7.4.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

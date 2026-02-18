@@ -39,6 +39,8 @@ Create `.env.local`:
 ```bash
 OPENROUTER_API_KEY=...
 ELEVENLABS_API_KEY=...
+# For Capacitor/mobile static builds:
+# NEXT_PUBLIC_API_BASE_URL=https://your-hosted-api-domain
 ```
 
 ## Quick Start
@@ -70,6 +72,15 @@ Lucid uses binaural-style spatial audio so sound feels physically placed around 
 ## Notes
 
 - Headphones are strongly recommended for directional depth.
+
+## Mobile (Capacitor)
+
+Lucid supports a Capacitor shell for iOS and Android with a static web export.
+
+- Full setup docs: `docs/mobile.md`
+- Build mobile web assets: `npm run mobile:web:build`
+- Sync Android project: `npm run mobile:cap:sync:android`
+- Sync iOS project: `npm run mobile:cap:sync:ios`
 
 ## Screenshots
 <img width="1498" height="814" alt="Screenshot 2026-02-08 at 12 45 47 PM" src="https://github.com/user-attachments/assets/1cf53a37-06f0-4b88-8776-0521cdb8fa4a" />

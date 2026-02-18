@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { readApiErrorMessage } from "@/lib/api-client";
+import { buildApiUrl } from "@/lib/runtime-api";
 import { isRecord, readOptionalString } from "@/lib/validation";
 
 type GenerateImageRequestBody = {
@@ -45,7 +46,7 @@ export function useDreamImage() {
       setError(null);
 
       try {
-        const response = await fetch("/api/generate-image", {
+        const response = await fetch(buildApiUrl("/api/generate-image"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -53,13 +54,13 @@ export function useDreamImage() {
           body: JSON.stringify(body),
         });
 
-      const responseBody = (await response.json()) as unknown;
+        const responseBody = (await response.json()) as unknown;
 
-      if (!response.ok) {
-        const message = readApiErrorMessage(responseBody, GENERATE_SCENE_ERROR_FALLBACK);
-        setError(message);
-        throw new Error(message);
-      }
+        if (!response.ok) {
+          const message = readApiErrorMessage(responseBody, GENERATE_SCENE_ERROR_FALLBACK);
+          setError(message);
+          throw new Error(message);
+        }
 
         return parseGeneratedDreamImage(responseBody);
       } finally {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { readApiErrorMessage } from "@/lib/api-client";
+import { buildApiUrl } from "@/lib/runtime-api";
 import { useAudioStore } from "@/store/use-audio-store";
 import type { DreamAudioAssets, DreamSceneAnalysis } from "@/types/dream";
 
@@ -142,7 +143,7 @@ export function useDreamAudio() {
         }
 
         const narratorPromise = getAudioBlob(
-          "/api/generate-voice",
+          buildApiUrl("/api/generate-voice"),
           {
             text: analysis.narrative,
           },
@@ -151,7 +152,7 @@ export function useDreamAudio() {
 
         const sfxPromises = timeline.cues.map((cue) =>
           getAudioBlob(
-            "/api/generate-sfx",
+            buildApiUrl("/api/generate-sfx"),
             {
               text: cue.prompt,
               loop: cue.loop,

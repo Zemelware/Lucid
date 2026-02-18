@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { readApiErrorMessage } from "@/lib/api-client";
+import { buildApiUrl } from "@/lib/runtime-api";
 import type { DreamSceneAnalysis } from "@/types/dream";
 
 type AnalyzeScenePayload =
@@ -27,7 +28,7 @@ export function useSceneAnalysis() {
     setError(null);
 
     try {
-      const response = await fetch("/api/analyze-scene", {
+      const response = await fetch(buildApiUrl("/api/analyze-scene"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

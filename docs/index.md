@@ -7,6 +7,7 @@ High-level documentation for Lucid. Any non-trivial subsystem, feature, or scrip
 - Architecture overview: `docs/architecture.md`
 - Environment + config: `docs/env.md`
 - API routes (server): `docs/api.md`
+- Capacitor mobile shell: `docs/mobile.md`
 - AI scene analysis (Gemini via OpenRouter): `docs/ai.md`
 - Image generation (Imagen via OpenRouter): `docs/image.md`
 - Audio generation + playback (ElevenLabs + Web Audio): `docs/audio.md`
@@ -25,4 +26,3 @@ If you add any of the following, add/update docs in this folder:
 - Any audio graph changes (panner models, gain envelopes, sync logic)
 - Any prompt/schema changes used with the model(s)
 - A new npm script or a script with side effects (e.g. deletes/builds)
-
