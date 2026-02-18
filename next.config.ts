@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const isMobileExport = process.env.NEXT_EXPORT_MODE === "1";
 
 const nextConfig: NextConfig = {
-  distDir: ".next-build",
+  distDir: isMobileExport ? ".next-build" : undefined,
   output: isMobileExport ? "export" : undefined,
   pageExtensions: isMobileExport ? ["tsx", "jsx"] : undefined,
   images: isMobileExport
