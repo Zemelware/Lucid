@@ -6,10 +6,10 @@
     "node": ">=20 <23"
   },
   "scripts": {
-    "dev": "npx -y node@22 ./node_modules/next/dist/bin/next dev",
+    "dev": "NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next dev",
     "clean": "rm -rf .next .next-build",
-    "build": "npm run clean && npx -y node@22 ./node_modules/next/dist/bin/next build",
-    "start": "npx -y node@22 ./node_modules/next/dist/bin/next start",
+    "build": "npm run clean && NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next build",
+    "start": "NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next start",
     "mobile:web:build": "npm run clean && NEXT_EXPORT_MODE=1 npx -y node@22 ./node_modules/next/dist/bin/next build",
     "mobile:cap:sync": "npm run mobile:web:build && npx cap sync",
     "mobile:cap:sync:ios": "npm run mobile:web:build && npx cap sync ios",
@@ -19,7 +19,7 @@
     "mobile:ios": "npm run mobile:cap:sync:ios && npx cap open ios",
     "mobile:android": "npm run mobile:cap:sync:android && npx cap open android",
     "lint": "next lint",
-    "typecheck": "npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false",
+    "typecheck": "NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next typegen && tsc --noEmit --incremental false",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

@@ -8,7 +8,7 @@ Command:
 - `npm run dev`
 
 Runs Next dev server using Node 22:
-- `npx -y node@22 ./node_modules/next/dist/bin/next dev`
+- `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next dev`
 
 ## build
 
@@ -19,7 +19,7 @@ Behavior:
 
 1. Runs `clean` (deletes build outputs)
 2. Builds Next using Node 22:
-   - `npx -y node@22 ./node_modules/next/dist/bin/next build`
+   - `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next build`
 
 ## start
 
@@ -27,7 +27,7 @@ Command:
 - `npm run start`
 
 Starts the production server using Node 22:
-- `npx -y node@22 ./node_modules/next/dist/bin/next start`
+- `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next start`
 
 ## mobile:web:build
 
@@ -127,6 +127,6 @@ Command:
 Runs:
 
 1. Next type generation:
-   - `npx -y node@22 ./node_modules/next/dist/bin/next typegen`
+   - `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next typegen`
 2. TypeScript check:
    - `tsc --noEmit --incremental false`
