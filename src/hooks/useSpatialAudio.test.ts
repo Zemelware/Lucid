@@ -18,6 +18,7 @@ class MockAudio {
   duration = 12;
   paused = true;
   ended = false;
+  playCalls = 0;
   private readonly listeners = new Map<string, Set<Listener>>();
 
   constructor(src?: string) {
@@ -39,6 +40,7 @@ class MockAudio {
   }
 
   play() {
+    this.playCalls += 1;
     this.paused = false;
     return Promise.resolve();
   }
@@ -65,6 +67,20 @@ class MockSourceNode {
   disconnect = vi.fn();
 }
 
+class MockBufferSourceNode {
+  connect = vi.fn();
+  disconnect = vi.fn();
+  start = vi.fn();
+  stop = vi.fn(() => {
+    this.onended?.();
+  });
+  loop = false;
+  loopStart = 0;
+  loopEnd = 0;
+  buffer: AudioBuffer | null = null;
+  onended: (() => void) | null = null;
+}
+
 class MockGainNode {
   connect = vi.fn();
   disconnect = vi.fn();
@@ -83,11 +99,14 @@ class MockPannerNode {
 }
 
 class MockAudioContext {
+  static instances: MockAudioContext[] = [];
   currentTime = 0;
   state: "suspended" | "running" = "suspended";
   destination = {} as AudioNode;
   createMediaElementSource = vi.fn(() => new MockSourceNode() as unknown as MediaElementAudioSourceNode);
+  createBufferSource = vi.fn(() => new MockBufferSourceNode() as unknown as AudioBufferSourceNode);
   createGain = vi.fn(() => new MockGainNode() as unknown as GainNode);
+  decodeAudioData = vi.fn(async () => ({ duration: 12 } as AudioBuffer));
   resume = vi.fn(async () => {
     this.state = "running";
   });
@@ -95,6 +114,10 @@ class MockAudioContext {
     this.state = "suspended";
   });
   close = vi.fn(async () => undefined);
+
+  constructor() {
+    MockAudioContext.instances.push(this);
+  }
 }
 
 const SAMPLE_PREPARED_AUDIO: DreamAudioAssets = {
@@ -159,11 +182,16 @@ const SAMPLE_PREPARED_AUDIO: DreamAudioAssets = {
 
 beforeEach(() => {
   MockAudio.instances = [];
+  MockAudioContext.instances = [];
   useSettingsStore.setState({ isHighRes: false, sfxVolume: 1, sfxCueVolumes: {} });
 
   const contextCtor = vi.fn(() => new MockAudioContext()) as unknown as typeof AudioContext;
   (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = contextCtor;
   (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext = undefined;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(new Uint8Array([1, 2, 3, 4]).buffer, { status: 200 })),
+  );
   vi.stubGlobal("Audio", MockAudio);
   vi.stubGlobal("PannerNode", MockPannerNode);
   window.requestAnimationFrame = vi.fn(() => 1);
@@ -197,12 +225,19 @@ describe("useSpatialAudio", () => {
   it("plays, seeks, pauses, and stops when audio graph is initialized", async () => {
     const { result } = renderHook(() => useSpatialAudio(SAMPLE_PREPARED_AUDIO));
 
+    await waitFor(() => {
+      expect(MockAudioContext.instances.length).toBe(1);
+      expect(MockAudioContext.instances[0]?.decodeAudioData).toHaveBeenCalledTimes(2);
+    });
+
     await act(async () => {
       await result.current.play();
     });
 
-    expect(MockAudio.instances.length).toBeGreaterThanOrEqual(3);
-    expect(MockAudio.instances.every((instance) => instance.paused === false)).toBe(true);
+    expect(MockAudio.instances.length).toBe(1);
+    expect(MockAudio.instances[0]?.paused).toBe(false);
+    expect(MockAudio.instances[0]?.loop).toBe(false);
+    expect(MockAudioContext.instances[0]?.createBufferSource).toHaveBeenCalledTimes(1);
 
     act(() => {
       result.current.seek(999);

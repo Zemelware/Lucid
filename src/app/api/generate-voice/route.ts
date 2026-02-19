@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { createOptionsResponse, withCors } from "@/lib/cors";
 import { getElevenLabsClient } from "@/lib/elevenlabs";
-import { isRecord, readNonEmptyString } from "@/lib/validation";
+import { isRecord, readNonEmptyString, readOptionalString } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -13,11 +13,15 @@ export function OPTIONS(request: Request) {
 
 const NARRATOR_VOICE_ID = "1ykC5GeLM4dP82qkyo91";
 const NARRATOR_MODEL_ID = "eleven_multilingual_v2";
-const OUTPUT_FORMAT = "mp3_44100_128";
+const WEB_OUTPUT_FORMAT = "mp3_44100_128";
+const MOBILE_OUTPUT_FORMAT = "mp3_44100_192";
 
 type GenerateVoiceRequestBody = {
   text?: unknown;
+  clientPlatform?: unknown;
 };
+
+type ClientPlatform = "web" | "mobile";
 
 const NARRATOR_VOICE_SETTINGS = {
   stability: 0.68,
@@ -26,6 +30,11 @@ const NARRATOR_VOICE_SETTINGS = {
   useSpeakerBoost: true,
   speed: 0.9
 } as const;
+
+function readClientPlatform(value: unknown): ClientPlatform {
+  const parsed = readOptionalString(value);
+  return parsed === "mobile" ? "mobile" : "web";
+}
 
 export async function POST(request: Request) {
   let body: GenerateVoiceRequestBody;
@@ -46,12 +55,13 @@ export async function POST(request: Request) {
 
   try {
     const text = readNonEmptyString(body.text, "text");
+    const clientPlatform = readClientPlatform(body.clientPlatform);
     const client = getElevenLabsClient();
 
     const audioStream = await client.textToSpeech.convert(NARRATOR_VOICE_ID, {
       text,
       modelId: NARRATOR_MODEL_ID,
-      outputFormat: OUTPUT_FORMAT,
+      outputFormat: clientPlatform === "mobile" ? MOBILE_OUTPUT_FORMAT : WEB_OUTPUT_FORMAT,
       applyTextNormalization: "on",
       voiceSettings: NARRATOR_VOICE_SETTINGS
     });

@@ -15,6 +15,7 @@ Routes:
 Behavior:
 
 - Starts narrator TTS and all SFX generations in parallel.
+- Sends `clientPlatform` with each audio request (`"web"` or `"mobile"`). The API routes can pick mobile-specific output formats without changing web output.
 - Converts each response to a Blob URL (`URL.createObjectURL`).
 - Preloads each Blob URL into an `HTMLAudioElement` (best-effort; resolves after 4s timeout).
 - Stores the prepared bundle as `DreamAudioAssets` (also mirrored into Zustand via `useAudioStore`).
@@ -38,17 +39,22 @@ Graph overview:
   - `HTMLAudioElement` -> `MediaElementAudioSourceNode` -> `GainNode` -> `destination`
   - No panner; stays centered/intimate via gain (~1.05).
 - SFX:
-  - `HTMLAudioElement` -> `MediaElementAudioSourceNode` -> `PannerNode(HRTF)` -> `GainNode` -> `SFX master GainNode` -> `destination`
+  - Blob URL is decoded to `AudioBuffer` once during graph setup
+  - Runtime chain per cue: `AudioBufferSourceNode` -> `PannerNode(HRTF)` -> `GainNode` -> `SFX master GainNode` -> `destination`
 
 Timeline sync:
 
 - Narrator element time is the master clock.
+- On Play, SFX elements are briefly started muted and paused in the same user gesture to satisfy mobile autoplay rules before cue-based scheduling begins.
+- On Play/Seek, cue sources are scheduled from the shared `AudioContext` clock instead of repeatedly mutating `HTMLAudioElement` playback state.
 - Each animation frame:
   - Compute timeline time relative to narrator progress
   - For each cue:
     - Compute an envelope (fade in/out) based on `fade_in_sec` / `fade_out_sec`
     - Interpolate `position_start` -> `position_end` for panner position
     - Apply cue gain = `cue.volume * userCueBoost * envelope`
+    - Start each cue source once when entering its window and stop it once after it exits (with a tiny end grace) to avoid rapid start/stop churn on mobile
+  - Narrator remains the single transport clock; looped cues receive occasional re-sync if drift exceeds a threshold
 
 Coordinate convention:
 
@@ -60,6 +66,10 @@ User mixing:
 - Master SFX volume: `useSettingsStore().sfxVolume`
 - Per-cue volume boost: `useSettingsStore().sfxCueVolumes[cue.id]`
 - Master volume uses `setTargetAtTime` smoothing.
+
+Loop behavior:
+
+- SFX elements now respect per-cue loop flags from analysis (`cue.loop`) instead of forcing all tracks to loop.
 
 ## Extension Points
 

@@ -9,6 +9,7 @@ import {
   readNonEmptyString,
   readOptionalBoolean,
   readOptionalNumber,
+  readOptionalString,
 } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -18,14 +19,23 @@ export function OPTIONS(request: Request) {
 }
 
 const SFX_MODEL_ID = "eleven_text_to_sound_v2";
-const OUTPUT_FORMAT = "mp3_44100_128";
+const WEB_OUTPUT_FORMAT = "mp3_44100_128";
+const MOBILE_OUTPUT_FORMAT = "mp3_44100_96";
 
 type GenerateSfxRequestBody = {
   text?: unknown;
   loop?: unknown;
   durationSeconds?: unknown;
   promptInfluence?: unknown;
+  clientPlatform?: unknown;
 };
+
+type ClientPlatform = "web" | "mobile";
+
+function readClientPlatform(value: unknown): ClientPlatform {
+  const parsed = readOptionalString(value);
+  return parsed === "mobile" ? "mobile" : "web";
+}
 
 export async function POST(request: Request) {
   let body: GenerateSfxRequestBody;
@@ -49,12 +59,13 @@ export async function POST(request: Request) {
     const loop = readOptionalBoolean(body.loop, "loop");
     const durationSeconds = readOptionalNumber(body.durationSeconds, "durationSeconds");
     const promptInfluence = readOptionalNumber(body.promptInfluence, "promptInfluence");
+    const clientPlatform = readClientPlatform(body.clientPlatform);
     const client = getElevenLabsClient();
 
     const audioStream = await client.textToSoundEffects.convert({
       text,
       modelId: SFX_MODEL_ID,
-      outputFormat: OUTPUT_FORMAT,
+      outputFormat: clientPlatform === "mobile" ? MOBILE_OUTPUT_FORMAT : WEB_OUTPUT_FORMAT,
       loop,
       durationSeconds:
         typeof durationSeconds === "number" ? clamp(durationSeconds, 0.5, 30) : undefined,

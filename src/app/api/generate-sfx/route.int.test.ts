@@ -72,6 +72,31 @@ describe("POST /api/generate-sfx", () => {
     });
   });
 
+  it("uses a mobile-specific output format when clientPlatform is mobile", async () => {
+    convertMock.mockReset();
+    convertMock.mockResolvedValueOnce(Uint8Array.from([4, 5, 6]));
+
+    const req = new Request("http://localhost/api/generate-sfx", {
+      method: "POST",
+      body: JSON.stringify({
+        text: "forest ambience",
+        clientPlatform: "mobile",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(convertMock).toHaveBeenCalledTimes(1);
+    expect(convertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "forest ambience",
+        outputFormat: "mp3_44100_96",
+      }),
+    );
+  });
+
   it("returns 500 when provider client errors with missing key", async () => {
     convertMock.mockReset();
     convertMock.mockRejectedValueOnce(new Error("ELEVENLABS_API_KEY is not configured."));

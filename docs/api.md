@@ -74,7 +74,7 @@ Purpose:
 
 Request body:
 ```json
-{ "text": "Narration text..." }
+{ "text": "Narration text...", "clientPlatform": "web" }
 ```
 
 Response:
@@ -83,6 +83,10 @@ Response:
 
 Implementation notes:
 - Voice id, model id, and voice settings are fixed in the route.
+- `clientPlatform` is optional (`"web"` default, `"mobile"` supported).
+- Output format is platform-tuned:
+  - Web: `mp3_44100_128`
+  - Mobile: `mp3_44100_192`
 
 ## POST /api/generate-sfx
 
@@ -97,7 +101,8 @@ Request body:
   "text": "soft river wash, close left ear, looping",
   "loop": true,
   "durationSeconds": 12,
-  "promptInfluence": 0.35
+  "promptInfluence": 0.35,
+  "clientPlatform": "web"
 }
 ```
 
@@ -108,6 +113,10 @@ Response:
 Implementation notes:
 - `durationSeconds` is clamped to [0.5, 30].
 - `promptInfluence` is clamped to [0, 1].
+- `clientPlatform` is optional (`"web"` default, `"mobile"` supported).
+- Output format is platform-tuned:
+  - Web: `mp3_44100_128`
+  - Mobile: `mp3_44100_96`
 
 ## POST /api/generate-image
 

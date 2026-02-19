@@ -94,5 +94,34 @@ describe("POST /api/generate-voice (integration via MSW)", () => {
     expect(res.status).toBe(429);
     await expect(res.json()).resolves.toMatchObject({ error: expect.any(String) });
   });
-});
 
+  it("uses a mobile-specific output format when clientPlatform is mobile", async () => {
+    process.env.ELEVENLABS_API_KEY = "test-eleven-key";
+
+    server.use(
+      http.post("https://api.elevenlabs.io/v1/text-to-speech/:voiceId", async ({ request }) => {
+        const url = new URL(request.url);
+        seen = {
+          url,
+          apiKeyHeader: request.headers.get("xi-api-key"),
+          jsonBody: await request.json().catch(() => null),
+        };
+
+        return HttpResponse.arrayBuffer(Uint8Array.from([0x4c]).buffer, {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        });
+      })
+    );
+
+    const req = new Request("http://localhost/api/generate-voice", {
+      method: "POST",
+      body: JSON.stringify({ text: "hello mobile", clientPlatform: "mobile" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(seen?.url.searchParams.get("output_format")).toBe("mp3_44100_192");
+  });
+});
