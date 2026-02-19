@@ -45,6 +45,16 @@ Builds a static export intended for Capacitor:
 
 Because Next can read stale trace artifacts from `.next` during export flows, mobile builds intentionally do a full clean for deterministic output.
 
+## mobile:dev
+
+Command:
+- `npm run mobile:dev`
+
+Runs a Next dev server for Capacitor live reload:
+- `rm -rf .next-dev && NEXT_EXPORT_MODE=0 next dev --hostname 0.0.0.0 --port 3000`
+
+This binds to all interfaces so native emulators/devices can reach your local server.
+
 ## mobile:cap:sync
 
 Command:
@@ -105,6 +115,28 @@ Command:
 Builds/syncs Capacitor assets, then opens Android Studio:
 1. `npm run mobile:cap:sync:android`
 2. `npx cap open android`
+
+## mobile:ios:live
+
+Command:
+- `npm run mobile:ios:live`
+
+Runs iOS with Capacitor live reload against the local dev server:
+- `rm -rf ios/DerivedData && npx cap run ios --no-sync --live-reload --host=localhost --port=3000`
+
+Use alongside `npm run mobile:dev` in another terminal.
+Run `npm run mobile:cap:sync:ios` before first use and after plugin/native config changes.
+
+## mobile:android:live
+
+Command:
+- `npm run mobile:android:live`
+
+Runs Android with Capacitor live reload against the local dev server:
+- `npx cap run android --no-sync --live-reload --host=10.0.2.2 --port=3000`
+
+`10.0.2.2` maps Android Emulator requests to the host machine. Use alongside `npm run mobile:dev` in another terminal.
+Run `npm run mobile:cap:sync:android` before first use and after plugin/native config changes.
 
 ## clean
 
