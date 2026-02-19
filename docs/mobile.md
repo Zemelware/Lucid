@@ -53,6 +53,10 @@ Use HTTPS for backend endpoints in production.
 ## Notes
 
 - Mobile static builds use `NEXT_EXPORT_MODE=1` in `next.config.ts`.
+- Mobile sync flows should run from a clean state (`.next`, `.next-build`, and `.next-dev` removed) because stale Next trace artifacts can break export with missing `*.nft.json` file errors.
+- Dev uses an isolated Next dist directory (`.next-dev`), while mobile export uses `.next-build`, to reduce cross-workflow artifact collisions.
+- In mobile export mode, Next build-time lint/type validation is skipped to avoid local type-manifest collisions during concurrent local workflows.
+- In mobile export mode, `pageExtensions` is constrained to `tsx/jsx/js` so App Router API handlers (`src/app/api/**/route.ts`) are excluded from export route discovery while keeping Next internal JS pages (like `/_document`) resolvable.
 - In export mode, app API route handlers are excluded from route discovery and are not bundled into the mobile web build.
 - Audio playback still requires a user gesture before autoplay-resume behavior can proceed.
 - iOS sync depends on a working CocoaPods environment (`pod install` must succeed).

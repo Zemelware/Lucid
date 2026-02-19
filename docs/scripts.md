@@ -7,8 +7,10 @@ Scripts live in `package.json`. These are non-trivial because they affect build 
 Command:
 - `npm run dev`
 
-Runs Next dev server using Node 22:
-- `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next dev`
+Runs Next dev server:
+- `rm -rf .next-dev && NEXT_EXPORT_MODE=0 next dev`
+
+`dev` uses an isolated build directory (`.next-dev`) so development artifacts cannot collide with mobile export artifacts.
 
 ## build
 
@@ -18,16 +20,16 @@ Command:
 Behavior:
 
 1. Runs `clean` (deletes build outputs)
-2. Builds Next using Node 22:
-   - `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next build`
+2. Builds Next:
+   - `NEXT_EXPORT_MODE=0 next build`
 
 ## start
 
 Command:
 - `npm run start`
 
-Starts the production server using Node 22:
-- `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next start`
+Starts the production server:
+- `NEXT_EXPORT_MODE=0 next start`
 
 ## mobile:web:build
 
@@ -35,11 +37,13 @@ Command:
 - `npm run mobile:web:build`
 
 Builds a static export intended for Capacitor:
-- Runs `clean`
+- Runs `clean` (deletes `.next`, `.next-build`, and `.next-dev`)
 - Sets `NEXT_EXPORT_MODE=1`
-- Runs Next build with Node 22
+- Runs Next build
 
 `NEXT_EXPORT_MODE=1` enables static export behavior in `next.config.ts`.
+
+Because Next can read stale trace artifacts from `.next` during export flows, mobile builds intentionally do a full clean for deterministic output.
 
 ## mobile:cap:sync
 
@@ -110,6 +114,17 @@ Command:
 Deletes build outputs:
 - `.next`
 - `.next-build`
+- `.next-dev`
+
+## clean:mobile
+
+Command:
+- `npm run clean:mobile`
+
+Deletes only the mobile export output:
+- `.next-build`
+
+Use this for Capacitor sync flows so a running `npm run dev` process does not lose its `.next-dev` server artifacts.
 
 ## lint
 
@@ -127,6 +142,6 @@ Command:
 Runs:
 
 1. Next type generation:
-   - `NEXT_EXPORT_MODE=0 npx -y node@22 ./node_modules/next/dist/bin/next typegen`
+   - `NEXT_EXPORT_MODE=0 next typegen`
 2. TypeScript check:
    - `tsc --noEmit --incremental false`
