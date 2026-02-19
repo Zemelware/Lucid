@@ -81,6 +81,9 @@ Lucid supports a Capacitor shell for iOS and Android with a static web export.
 - Build mobile web assets: `npm run mobile:web:build`
 - Sync Android project: `npm run mobile:cap:sync:android`
 - Sync iOS project: `npm run mobile:cap:sync:ios`
+- Live reload dev server: `npm run mobile:dev`
+- Live reload iOS Simulator: `npm run mobile:ios:live`
+- Live reload Android Emulator: `npm run mobile:android:live`
 
 ## Screenshots
 <img width="1498" height="814" alt="Screenshot 2026-02-08 at 12 45 47 PM" src="https://github.com/user-attachments/assets/1cf53a37-06f0-4b88-8776-0521cdb8fa4a" />
