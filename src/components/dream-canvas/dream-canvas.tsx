@@ -9,6 +9,15 @@ import Image from "next/image";
 import { DreamControls } from "@/components/controls/dream-controls";
 import { DreamLoadingOverlay } from "@/components/dream-canvas/dream-loading-overlay";
 import { WelcomeHero } from "@/components/dream-canvas/welcome-hero";
+import { DreamscapeSnapshotPanel } from "@/devtools/dreamscape-snapshots/dreamscape-snapshot-panel";
+import {
+  DREAMSCAPE_SNAPSHOT_IMAGE_DATA_URL,
+  type DreamscapeSnapshotImage,
+} from "@/devtools/dreamscape-snapshots/types";
+import {
+  useDreamscapeSnapshots,
+  type LoadDreamscapeSnapshotPayload,
+} from "@/devtools/dreamscape-snapshots/useDreamscapeSnapshots";
 import { useDreamAudio } from "@/hooks/useDreamAudio";
 import { useDreamImage } from "@/hooks/useDreamImage";
 import { usePanelTone } from "@/hooks/usePanelTone";
@@ -20,6 +29,9 @@ import { useSettingsStore } from "@/store/use-settings-store";
 type DreamCanvasProps = {
   imageSrc?: string;
 };
+
+const ENABLE_DEV_DREAMSCAPE_SNAPSHOTS =
+  process.env.NEXT_PUBLIC_ENABLE_DEV_DREAMSCAPE_SNAPSHOTS === "true";
 
 function formatCueIdLabel(value: string): string {
   const normalized = value
@@ -55,7 +67,13 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     generateImage,
     clearError: clearImageGenerationError,
   } = useDreamImage();
-  const { isPreparingAudio, error: audioError, prepareAudio, clearPreparedAudio } = useDreamAudio();
+  const {
+    isPreparingAudio,
+    error: audioError,
+    prepareAudio,
+    prepareAudioFromSnapshot,
+    clearPreparedAudio,
+  } = useDreamAudio();
   const preparedAudio = useAudioStore((state) => state.preparedAudio);
   const isPlaying = useAudioStore((state) => state.isPlaying);
   const setIsPlaying = useAudioStore((state) => state.setIsPlaying);
@@ -252,6 +270,44 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
     } catch {}
   };
 
+  const applySnapshotImage = (image: DreamscapeSnapshotImage) => {
+    setUploadedImageDataUrl(null);
+    setUploadedImageUrl((previousUrl) => {
+      if (previousUrl) {
+        URL.revokeObjectURL(previousUrl);
+      }
+
+      return null;
+    });
+
+    if (image.kind === DREAMSCAPE_SNAPSHOT_IMAGE_DATA_URL) {
+      setGeneratedImageDataUrl(image.dataUrl);
+      setGeneratedImageUrl(null);
+      return;
+    }
+
+    setGeneratedImageDataUrl(null);
+    setGeneratedImageUrl(image.url);
+  };
+
+  const handleSnapshotLoad = async (snapshot: LoadDreamscapeSnapshotPayload) => {
+    setLocalError(null);
+    setPlaybackError(null);
+    clearImageGenerationError();
+    stopSpatialAudio();
+    setIsPlaying(false);
+    clearAnalysis();
+    clearPreparedAudio();
+
+    applySnapshotImage(snapshot.image);
+
+    await prepareAudioFromSnapshot({
+      analysis: snapshot.analysis,
+      narratorBlob: snapshot.narratorBlob,
+      sfxBlobs: snapshot.sfxBlobs,
+    });
+  };
+
   const handlePlayToggle = async () => {
     if (!preparedAudio) {
       setPlaybackError("Generate a dream first, then press Play.");
@@ -309,7 +365,22 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
   const canPlayAudio =
     preparedAudio !== null && !isPreparingAudio && !isGeneratingImage && !isAnalyzing;
   const canSeekAudio = canPlayAudio && durationSeconds > 0;
+  const canSaveSnapshot = ENABLE_DEV_DREAMSCAPE_SNAPSHOTS && preparedAudio !== null && shouldRenderImage;
   const sfxCues = preparedAudio?.timeline.cues ?? [];
+  const {
+    enabled: snapshotsEnabled,
+    snapshots: dreamscapeSnapshots,
+    isBusy: isSnapshotBusy,
+    error: snapshotError,
+    saveSnapshot,
+    loadSnapshot,
+    deleteSnapshot,
+  } = useDreamscapeSnapshots({
+    enabled: ENABLE_DEV_DREAMSCAPE_SNAPSHOTS,
+    activeImageSrc,
+    preparedAudio,
+    onLoadSnapshot: handleSnapshotLoad,
+  });
   const sfxPanelToneClassName =
     panelTone === "dark"
       ? "border-white/10 bg-slate-950/45 text-slate-100 shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
@@ -445,6 +516,24 @@ export function DreamCanvas({ imageSrc }: DreamCanvasProps) {
           </div>
         </div>
       </div>
+
+      {snapshotsEnabled ? (
+        <DreamscapeSnapshotPanel
+          snapshots={dreamscapeSnapshots}
+          isBusy={isSnapshotBusy}
+          error={snapshotError}
+          canSave={canSaveSnapshot}
+          onSave={() => {
+            void saveSnapshot();
+          }}
+          onLoad={(snapshotId) => {
+            void loadSnapshot(snapshotId);
+          }}
+          onDelete={(snapshotId) => {
+            void deleteSnapshot(snapshotId);
+          }}
+        />
+      ) : null}
 
       {shouldRenderImage ? (
         <div className="dream-breath absolute inset-0 will-change-transform">

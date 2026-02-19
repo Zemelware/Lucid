@@ -67,4 +67,7 @@ User mixing:
   - `src/types/dream.ts`
   - `src/hooks/useSpatialAudio.ts` (graph + timeline)
   - `src/components/dream-canvas/dream-canvas.tsx` (UI controls)
-
+- Dev-only snapshot loading rehydrates audio through `useDreamAudio` using saved narrator/SFX blobs,
+  then reuses the same `DreamAudioAssets` + `useSpatialAudio` path as first-run generations.
+  - Snapshot modules live under `src/devtools/dreamscape-snapshots/**` and are gated by
+    `NEXT_PUBLIC_ENABLE_DEV_DREAMSCAPE_SNAPSHOTS`.

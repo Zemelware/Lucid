@@ -124,6 +124,18 @@ describe("useDreamAudio", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/generate-voice");
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/generate-sfx");
     expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/generate-sfx");
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body)),
+    ).toMatchObject({
+      text: SAMPLE_ANALYSIS.narrative,
+      clientPlatform: "web",
+    });
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit | undefined)?.body)),
+    ).toMatchObject({
+      text: SAMPLE_ANALYSIS.timeline.cues[0]?.prompt,
+      clientPlatform: "web",
+    });
 
     const urlApi = URL as unknown as {
       createObjectURL: ReturnType<typeof vi.fn>;
@@ -138,6 +150,41 @@ describe("useDreamAudio", () => {
     expect(result.current.preparedAudio).toBeNull();
     expect(useAudioStore.getState().preparedAudio).toBeNull();
     expect(urlApi.revokeObjectURL).toHaveBeenCalledTimes(3);
+  });
+
+  it("marks requests as mobile when running in a native Capacitor shell", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      return new Response(new Blob(["audio-bytes"]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    (window as Window & { Capacitor?: { isNativePlatform: () => boolean } }).Capacitor = {
+      isNativePlatform: () => true,
+    };
+
+    const { result } = renderHook(() => useDreamAudio());
+
+    await act(async () => {
+      await result.current.prepareAudio(SAMPLE_ANALYSIS);
+    });
+
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body)),
+    ).toMatchObject({
+      clientPlatform: "mobile",
+    });
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit | undefined)?.body)),
+    ).toMatchObject({
+      clientPlatform: "mobile",
+    });
+
+    act(() => {
+      result.current.clearPreparedAudio();
+    });
   });
 
   it("returns null and sets error for invalid timelines", async () => {
@@ -155,6 +202,36 @@ describe("useDreamAudio", () => {
     });
 
     expect(result.current.error).toMatch(/timeline is missing or invalid/i);
+  });
+
+  it("hydrates prepared audio directly from saved blobs", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useDreamAudio());
+    const narratorBlob = new Blob(["saved-narrator"], { type: "audio/mpeg" });
+    const sfxBlobs = [
+      new Blob(["saved-rain"], { type: "audio/mpeg" }),
+      new Blob(["saved-wind"], { type: "audio/mpeg" }),
+    ];
+
+    await act(async () => {
+      await result.current.prepareAudioFromSnapshot({
+        analysis: SAMPLE_ANALYSIS,
+        narratorBlob,
+        sfxBlobs,
+      });
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    expect(result.current.preparedAudio).not.toBeNull();
+    expect(useAudioStore.getState().preparedAudio).toEqual(result.current.preparedAudio);
+    expect(result.current.preparedAudio?.timeline).toEqual(SAMPLE_ANALYSIS.timeline);
+
+    act(() => {
+      result.current.clearPreparedAudio();
+    });
   });
 
   it("surfaces non-OK API JSON error body", async () => {

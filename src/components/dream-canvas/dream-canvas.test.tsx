@@ -10,6 +10,7 @@ import type { DreamSceneAnalysis } from "@/types/dream";
 const mockAnalyzeScene = vi.fn();
 const mockGenerateImage = vi.fn();
 const mockPrepareAudio = vi.fn();
+const mockPrepareAudioFromSnapshot = vi.fn();
 const mockClearPreparedAudio = vi.fn();
 const mockStopSpatialAudio = vi.fn();
 const mockPauseSpatialAudio = vi.fn();
@@ -70,6 +71,7 @@ vi.mock("@/hooks/useDreamAudio", () => ({
     isPreparingAudio: false,
     error: null,
     prepareAudio: mockPrepareAudio,
+    prepareAudioFromSnapshot: mockPrepareAudioFromSnapshot,
     clearPreparedAudio: mockClearPreparedAudio,
   }),
 }));
@@ -122,6 +124,7 @@ beforeEach(() => {
   mockAnalyzeScene.mockReset();
   mockGenerateImage.mockReset();
   mockPrepareAudio.mockReset();
+  mockPrepareAudioFromSnapshot.mockReset();
   mockClearPreparedAudio.mockReset();
   mockStopSpatialAudio.mockReset();
   mockPauseSpatialAudio.mockReset();

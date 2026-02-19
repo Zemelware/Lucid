@@ -18,6 +18,11 @@ Configured via `.env.local` (not committed):
   - When unset, requests use same-origin relative paths (for regular Next web deploys).
   - Set this for Capacitor builds (for example: `https://api.example.com`) so mobile
     web assets can call a hosted API backend.
+- `NEXT_PUBLIC_ENABLE_DEV_DREAMSCAPE_SNAPSHOTS`
+  - Enables a dev-only snapshot panel in `DreamCanvas` to save/load generated dreamscapes
+    (image + analysis + per-cue audio blobs) from IndexedDB.
+  - Intended for local testing to avoid repeated provider calls.
+  - Leave unset in normal and production environments.
 
 ## Runtime Notes
 
