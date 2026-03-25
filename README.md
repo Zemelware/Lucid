@@ -2,7 +2,7 @@
 
 Lucid is an ASMR dreamscape generator built with Next.js. It turns a static image (uploaded or AI-generated) into a guided, 8D spatial-audio experience with an ASMR narrated dream script and moving 3D sound effects.
 
-Demo: https://www.youtube.com/watch?v=KlVyqp4rh0w
+https://github.com/user-attachments/assets/ab079332-1f5c-4182-bc2b-1457adfa19c0
 
 ## What It Does
 
